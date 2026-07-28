@@ -144,7 +144,10 @@ namespace SurvivalNeeds
                 LoadGame();
 
                 arrestSystem =
-                    new ArrestSystem();
+                    new ArrestSystem(
+                        money,
+                        inventory
+                    );
 
                 inventoryMenu =
                     new InventoryMenu(
