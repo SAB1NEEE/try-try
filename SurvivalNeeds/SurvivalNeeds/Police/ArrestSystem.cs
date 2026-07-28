@@ -19,9 +19,7 @@ namespace SurvivalNeeds.Police
             Handcuffing,
             Busted,
             Fading,
-            Respawning,
-            Jail,
-            Releasing
+            Respawning
         }
 
         private ArrestState state = ArrestState.Idle;
@@ -36,20 +34,10 @@ namespace SurvivalNeeds.Police
         private const float HandcuffDistance = 2.2f;
         private const float OfficerSearchDistance = 80.0f;
 
+        private readonly Vector3 policeStationPosition =
+        new Vector3(425.10f, -979.50f, 30.70f);
 
-        private readonly Vector3 jailCellPosition =
-        new Vector3(459.30f, -994.10f, 24.91f);
-
-        private const float JailCellHeading = 90.0f;
-
-        private readonly Vector3 releasePosition =
-            new Vector3(425.10f, -979.50f, 30.70f);
-
-        private const float ReleaseHeading = 90.0f;
-
-        private const int JailDuration = 30000;
-
-        private int jailStartTime;
+        private const float PoliceStationHeading = 90.0f;
 
         private readonly ConfiscationSystem confiscationSystem;
 
@@ -92,14 +80,6 @@ namespace SurvivalNeeds.Police
                 case ArrestState.Respawning:
                     RespawnPlayer();
                     break;
-
-                case ArrestState.Jail:
-                    UpdateJail();
-                    break;
-
-                case ArrestState.Releasing:
-                    UpdateRelease();
-                    break;
             }
         }
 
@@ -138,6 +118,7 @@ namespace SurvivalNeeds.Police
 
         private void StartSurrender()
         {
+
             state = ArrestState.Surrendering;
             stateStartTime = Game.GameTime;
 
@@ -380,16 +361,16 @@ namespace SurvivalNeeds.Police
 
             Function.Call(
                 Hash.REQUEST_COLLISION_AT_COORD,
-                jailCellPosition.X,
-                jailCellPosition.Y,
-                jailCellPosition.Z
+                policeStationPosition.X,
+                policeStationPosition.Y,
+                policeStationPosition.Z
             );
 
             Function.Call(
                 Hash.LOAD_SCENE,
-                jailCellPosition.X,
-                jailCellPosition.Y,
-                jailCellPosition.Z
+                policeStationPosition.X,
+                policeStationPosition.Y,
+                policeStationPosition.Z
             );
 
             player.Task.ClearAllImmediately();
@@ -403,17 +384,17 @@ namespace SurvivalNeeds.Police
             Function.Call(
                 Hash.SET_ENTITY_COORDS_NO_OFFSET,
                 player.Handle,
-                jailCellPosition.X,
-                jailCellPosition.Y,
-                jailCellPosition.Z,
+                policeStationPosition.X,
+                policeStationPosition.Y,
+                policeStationPosition.Z,
                 false,
                 false,
                 false
             );
 
-            player.Heading = JailCellHeading;
+            player.Heading = PoliceStationHeading;
 
-            // Confiscate after arriving at jail.
+            // Confiscate cash, inventory and weapons.
             confiscationSystem.ConfiscatePlayer();
 
             if (arrestingOfficer != null &&
@@ -425,103 +406,6 @@ namespace SurvivalNeeds.Police
 
             arrestingOfficer = null;
 
-            jailStartTime = Game.GameTime;
-            state = ArrestState.Jail;
-
-            Function.Call(
-                Hash.DO_SCREEN_FADE_IN,
-                1500
-            );
-
-            Notification.Show(
-                "~r~You have been jailed.~n~~s~Sentence: 30 seconds."
-            );
-        }
-
-        private void UpdateJail()
-        {
-            DisableJailActions();
-
-            int elapsed =
-                Game.GameTime - jailStartTime;
-
-            int remaining =
-                JailDuration - elapsed;
-
-            if (remaining < 0)
-            {
-                remaining = 0;
-            }
-
-            int remainingSeconds =
-                (remaining + 999) / 1000;
-
-            GTA.UI.Screen.ShowSubtitle(
-                "~r~MISSION ROW HOLDING CELL~n~" +
-                "~s~Time remaining: ~y~" +
-                remainingSeconds +
-                " seconds",
-                1000
-            );
-
-            if (remaining > 0)
-            {
-                return;
-            }
-
-            state = ArrestState.Releasing;
-            stateStartTime = Game.GameTime;
-
-            Function.Call(
-                Hash.DO_SCREEN_FADE_OUT,
-                1500
-            );
-        }
-
-        private void UpdateRelease()
-        {
-            DisableJailActions();
-
-            if (Game.GameTime - stateStartTime < 1800)
-            {
-                return;
-            }
-
-            Function.Call(
-                Hash.REQUEST_COLLISION_AT_COORD,
-                releasePosition.X,
-                releasePosition.Y,
-                releasePosition.Z
-            );
-
-            Function.Call(
-                Hash.SET_ENTITY_COORDS_NO_OFFSET,
-                player.Handle,
-                releasePosition.X,
-                releasePosition.Y,
-                releasePosition.Z,
-                false,
-                false,
-                false
-            );
-
-            player.Heading = ReleaseHeading;
-
-            player.Task.ClearAllImmediately();
-
-            Function.Call(
-                Hash.SET_ENABLE_HANDCUFFS,
-                player.Handle,
-                false
-            );
-
-            Game.Player.WantedLevel = 0;
-
-            Function.Call(
-                Hash.CLEAR_PLAYER_WANTED_LEVEL,
-                Game.Player.Handle
-            );
-
             state = ArrestState.Idle;
 
             Function.Call(
@@ -530,76 +414,7 @@ namespace SurvivalNeeds.Police
             );
 
             Notification.Show(
-                "~g~You have been released from custody."
-            );
-        }
-
-        private void DisableJailActions()
-        {
-            // Attack
-            Function.Call(
-                Hash.DISABLE_CONTROL_ACTION,
-                0,
-                24,
-                true
-            );
-
-            // Aim
-            Function.Call(
-                Hash.DISABLE_CONTROL_ACTION,
-                0,
-                25,
-                true
-            );
-
-            // Weapon wheel
-            Function.Call(
-                Hash.DISABLE_CONTROL_ACTION,
-                0,
-                37,
-                true
-            );
-
-            // Cover
-            Function.Call(
-                Hash.DISABLE_CONTROL_ACTION,
-                0,
-                44,
-                true
-            );
-
-            // Enter vehicle
-            Function.Call(
-                Hash.DISABLE_CONTROL_ACTION,
-                0,
-                75,
-                true
-            );
-
-            // Melee attacks
-            Function.Call(
-                Hash.DISABLE_CONTROL_ACTION,
-                0,
-                140,
-                true
-            );
-
-            Function.Call(
-                Hash.DISABLE_CONTROL_ACTION,
-                0,
-                141,
-                true
-            );
-
-            Function.Call(
-                Hash.DISABLE_CONTROL_ACTION,
-                0,
-                142,
-                true
-            );
-
-            player.Weapons.Select(
-                WeaponHash.Unarmed
+            "~r~You were arrested.~n~~s~Cash, weapons and inventory confiscated."
             );
         }
 
