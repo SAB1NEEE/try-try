@@ -1,7 +1,6 @@
 ﻿using GTA;
 using GTA.Native;
 using SurvivalNeeds.Inventory;
-using System;
 
 namespace SurvivalNeeds.Systems
 {
@@ -48,33 +47,96 @@ namespace SurvivalNeeds.Systems
                     continue;
                 }
 
-                bool inventoryHasWeapon =
-                    InventoryContainsWeapon(
+                InventorySlot weaponSlot =
+                    GetWeaponSlot(
                         item.WeaponHash
                     );
+
+                bool inventoryHasWeapon =
+                    weaponSlot != null;
 
                 bool wheelHasWeapon =
                     player.Weapons.HasWeapon(
                         item.WeaponHash
                     );
 
-                // Weapon exists in mod inventory,
-                // but is missing from GTA's weapon wheel.
+                //============================================
+                // INVENTORY HAS WEAPON, WHEEL DOES NOT
+                //============================================
+
                 if (inventoryHasWeapon &&
                     !wheelHasWeapon)
                 {
+                    int ammoToRestore =
+                        weaponSlot.Ammo;
+
+                    if (ammoToRestore < 0)
+                    {
+                        ammoToRestore = 0;
+                    }
+
+                    // Give the weapon with zero ammo first.
                     player.Weapons.Give(
                         item.WeaponHash,
-                        item.StartingAmmo,
+                        0,
                         false,
                         false
                     );
 
+                    // Force GTA's ammunition to exactly
+                    // match the ammo saved in the inventory slot.
+                    Weapon restoredWeapon =
+                        player.Weapons[
+                            item.WeaponHash
+                        ];
+
+                    if (restoredWeapon != null)
+                    {
+                        restoredWeapon.Ammo =
+                            ammoToRestore;
+                    }
+
                     continue;
                 }
 
-                // Weapon does not exist in mod inventory,
-                // but GTA still has it.
+                //============================================
+                // INVENTORY AND WHEEL BOTH HAVE WEAPON
+                //============================================
+
+                if (inventoryHasWeapon &&
+                    wheelHasWeapon)
+                {
+                    Weapon gtaWeapon =
+                        player.Weapons[
+                            item.WeaponHash
+                        ];
+
+                    if (gtaWeapon != null)
+                    {
+                        int currentAmmo =
+                            gtaWeapon.Ammo;
+
+                        if (currentAmmo < 0)
+                        {
+                            currentAmmo = 0;
+                        }
+
+                        if (weaponSlot.Ammo !=
+                            currentAmmo)
+                        {
+                            weaponSlot.SetAmmo(
+                                currentAmmo
+                            );
+                        }
+                    }
+
+                    continue;
+                }
+
+                //============================================
+                // INVENTORY DOES NOT HAVE WEAPON
+                //============================================
+
                 if (!inventoryHasWeapon &&
                     wheelHasWeapon)
                 {
@@ -88,12 +150,18 @@ namespace SurvivalNeeds.Systems
         }
 
         //====================================================
-        // INVENTORY CONTAINS WEAPON
+        // GET WEAPON SLOT
         //====================================================
 
-        private bool InventoryContainsWeapon(
+        private InventorySlot GetWeaponSlot(
             WeaponHash weaponHash)
         {
+            if (inventory == null ||
+                inventory.Slots == null)
+            {
+                return null;
+            }
+
             foreach (InventorySlot slot
                 in inventory.Slots)
             {
@@ -113,11 +181,11 @@ namespace SurvivalNeeds.Systems
                 if (slot.Item.WeaponHash ==
                     weaponHash)
                 {
-                    return true;
+                    return slot;
                 }
             }
 
-            return false;
+            return null;
         }
     }
 }

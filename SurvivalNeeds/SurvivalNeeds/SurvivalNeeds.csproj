@@ -118,8 +118,6 @@
     <Compile Include="Vendors\VendorMenu.cs" />
     <Compile Include="Vendors\VendorsManager.cs" />
     <Compile Include="Vendors\VendorType.cs" />
-    <Compile Include="WeaponInventory\WeaponInventoryItem.cs" />
-    <Compile Include="WeaponInventory\WeaponInventoryManager.cs" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="Assets\Icons\" />

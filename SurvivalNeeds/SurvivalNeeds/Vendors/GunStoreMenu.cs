@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.Globalization;
 using SurvivalNeeds.Inventory;
+using SurvivalNeeds.VehicleStorage;
 using SurvivalNeeds.Loot;
 using SurvivalNeeds.Systems;
 using System.IO;
@@ -24,6 +25,7 @@ public class GunStoreMenu
 
     private readonly GunStore gunStore;
     private readonly InventoryManager inventory;
+    private readonly VehicleInventoryManager vehicleInventoryManager;
     private readonly MoneySystem money;
     private readonly Action saveAfterPurchase;
 
@@ -172,6 +174,7 @@ public class GunStoreMenu
     public GunStoreMenu(
     GunStore gunStore,
     InventoryManager inventory,
+    VehicleInventoryManager vehicleInventoryManager,
     MoneySystem money,
     Action saveAfterPurchase)
     {
@@ -180,6 +183,9 @@ public class GunStoreMenu
 
         this.inventory =
             inventory;
+
+        this.vehicleInventoryManager =
+            vehicleInventoryManager;
 
         this.money =
             money;
@@ -626,15 +632,29 @@ public class GunStoreMenu
                 : mutedTextColor
         );
 
-        bool owned =
-    gunStore.PlayerOwnsWeapon(
-        item
+        string inventoryItemId =
+    GetWeaponInventoryItemId(
+        item.WeaponHash
     );
+
+        bool carried =
+            InventoryContainsItem(
+                inventoryItemId
+            );
+
+        bool storedInTrunk =
+            VehicleTrunksContainItem(
+                inventoryItemId
+            );
+
+        bool owned =
+            carried ||
+            storedInTrunk;
 
         if (selectedMode ==
             GunStoreMode.Weapons)
         {
-            if (owned)
+            if (carried)
             {
                 DrawCenteredText(
                     "OWNED",
@@ -642,6 +662,16 @@ public class GunStoreMenu
                     y + height - 0.020f,
                     0.21f,
                     cyanColor
+                );
+            }
+            else if (storedInTrunk)
+            {
+                DrawCenteredText(
+                    "OWNED IN TRUNK",
+                    x + width / 2f,
+                    y + height - 0.020f,
+                    0.18f,
+                    Color.Gold
                 );
             }
         }
@@ -657,7 +687,7 @@ public class GunStoreMenu
                     mutedTextColor
                 );
             }
-            else if (!owned)
+            else if (!carried)
             {
                 DrawCenteredText(
                     "NOT OWNED",
@@ -799,10 +829,24 @@ public class GunStoreMenu
             mutedTextColor
         );
 
-        bool owned =
-            gunStore.PlayerOwnsWeapon(
-                item
+        string inventoryItemId =
+    GetWeaponInventoryItemId(
+        item.WeaponHash
+    );
+
+        bool carried =
+            InventoryContainsItem(
+                inventoryItemId
             );
+
+        bool storedInTrunk =
+            VehicleTrunksContainItem(
+                inventoryItemId
+            );
+
+        bool owned =
+            carried ||
+            storedInTrunk;
 
         string actionText;
         Color actionColor;
@@ -810,15 +854,30 @@ public class GunStoreMenu
         if (selectedMode ==
             GunStoreMode.Weapons)
         {
-            actionText =
-                owned
-                    ? "ALREADY OWNED"
-                    : "PRESS E TO BUY";
+            if (carried)
+            {
+                actionText =
+                    "ALREADY OWNED";
 
-            actionColor =
-                owned
-                    ? cyanColor
-                    : greenColor;
+                actionColor =
+                    cyanColor;
+            }
+            else if (storedInTrunk)
+            {
+                actionText =
+                    "OWNED IN VEHICLE TRUNK";
+
+                actionColor =
+                    Color.Gold;
+            }
+            else
+            {
+                actionText =
+                    "PRESS E TO BUY";
+
+                actionColor =
+                    greenColor;
+            }
         }
         else
         {
@@ -830,13 +889,17 @@ public class GunStoreMenu
                 actionColor =
                     mutedTextColor;
             }
-            else if (!owned)
+            else if (!carried)
             {
                 actionText =
-                    "WEAPON NOT OWNED";
+                    storedInTrunk
+                        ? "WEAPON IS IN VEHICLE TRUNK"
+                        : "WEAPON NOT OWNED";
 
                 actionColor =
-                    Color.IndianRed;
+                    storedInTrunk
+                        ? Color.Gold
+                        : Color.IndianRed;
             }
             else
             {
@@ -1194,9 +1257,22 @@ public class GunStoreMenu
             inventoryItemId))
         {
             ShowStoreMessage(
-                "You already own the " +
+                "You are already carrying the " +
                 item.Name +
                 ".",
+                Color.Gold
+            );
+
+            return;
+        }
+
+        if (VehicleTrunksContainItem(
+            inventoryItemId))
+        {
+            ShowStoreMessage(
+                "The " +
+                item.Name +
+                " is stored in a vehicle trunk.",
                 Color.Gold
             );
 
@@ -1283,6 +1359,8 @@ public class GunStoreMenu
 
             saveAfterPurchase?.Invoke();
 
+            PlayPurchaseSound();
+
             ShowStoreMessage(
                 resultMessage,
                 greenColor
@@ -1302,7 +1380,7 @@ public class GunStoreMenu
     //====================================================
 
     private void PurchaseSelectedAmmo(
-        GunStoreItem item)
+    GunStoreItem item)
     {
         if (item == null)
         {
@@ -1333,6 +1411,47 @@ public class GunStoreMenu
             return;
         }
 
+        if (inventory == null ||
+            inventory.Slots == null)
+        {
+            Notification.Show(
+                "~r~Inventory unavailable."
+            );
+
+            return;
+        }
+
+        string inventoryItemId =
+            GetWeaponInventoryItemId(
+                item.WeaponHash
+            );
+
+        if (string.IsNullOrWhiteSpace(
+            inventoryItemId))
+        {
+            ShowStoreMessage(
+                "This weapon has no inventory item.",
+                Color.IndianRed
+            );
+
+            return;
+        }
+
+        InventorySlot weaponSlot =
+            FindInventorySlot(
+                inventoryItemId
+            );
+
+        if (weaponSlot == null)
+        {
+            ShowStoreMessage(
+                "Weapon not found in player inventory.",
+                Color.IndianRed
+            );
+
+            return;
+        }
+
         string resultMessage;
         int newAmmoAmount;
 
@@ -1357,7 +1476,22 @@ public class GunStoreMenu
             return;
         }
 
+        if (newAmmoAmount < 0)
+        {
+            newAmmoAmount = 0;
+        }
+
+        // Store the exact new GTA ammo count
+        // in the matching inventory weapon slot.
+        weaponSlot.SetAmmo(
+            newAmmoAmount
+        );
+
+        // Save only after the inventory slot
+        // contains the updated ammo count.
         saveAfterPurchase?.Invoke();
+
+        PlayPurchaseSound();
 
         ShowStoreMessage(
             resultMessage,
@@ -1384,6 +1518,21 @@ public class GunStoreMenu
             Game.GameTime +
             duration;
     }
+
+    //====================================================
+// PLAY PURCHASE SOUND
+//====================================================
+
+private void PlayPurchaseSound()
+{
+    Function.Call(
+        Hash.PLAY_SOUND_FRONTEND,
+        -1,
+        "PURCHASE",
+        "HUD_LIQUOR_STORE_SOUNDSET",
+        true
+    );
+}
 
     //====================================================
     // WEAPON INVENTORY ITEM ID
@@ -1463,6 +1612,95 @@ public class GunStoreMenu
         }
 
         return false;
+    }
+
+    //====================================================
+    // VEHICLE TRUNKS CONTAIN ITEM
+    //====================================================
+
+    private bool VehicleTrunksContainItem(
+        string itemId)
+    {
+        if (vehicleInventoryManager == null ||
+            vehicleInventoryManager.Vehicles == null ||
+            string.IsNullOrWhiteSpace(itemId))
+        {
+            return false;
+        }
+
+        foreach (
+            KeyValuePair<string, VehicleInventory>
+            vehiclePair in
+            vehicleInventoryManager.Vehicles)
+        {
+            VehicleInventory vehicleInventory =
+                vehiclePair.Value;
+
+            if (vehicleInventory == null ||
+                vehicleInventory.Inventory == null ||
+                vehicleInventory.Inventory.Slots == null)
+            {
+                continue;
+            }
+
+            foreach (InventorySlot slot
+                in vehicleInventory.Inventory.Slots)
+            {
+                if (slot == null ||
+                    slot.IsEmpty ||
+                    slot.Item == null)
+                {
+                    continue;
+                }
+
+                if (string.Equals(
+                    slot.Item.Id,
+                    itemId,
+                    StringComparison.OrdinalIgnoreCase))
+                {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    //====================================================
+    // FIND INVENTORY SLOT
+    //====================================================
+
+    private InventorySlot FindInventorySlot(
+        string itemId)
+    {
+        if (inventory == null ||
+            inventory.Slots == null ||
+            string.IsNullOrWhiteSpace(
+                itemId))
+        {
+            return null;
+        }
+
+        foreach (InventorySlot slot
+            in inventory.Slots)
+        {
+            if (slot == null ||
+                slot.IsEmpty ||
+                slot.Item == null)
+            {
+                continue;
+            }
+
+            if (string.Equals(
+                slot.Item.Id,
+                itemId,
+                StringComparison.OrdinalIgnoreCase))
+            {
+                return slot;
+            }
+        }
+
+        return null;
     }
 
     //====================================================

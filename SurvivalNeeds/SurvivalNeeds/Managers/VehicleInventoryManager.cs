@@ -407,12 +407,25 @@ namespace SurvivalNeeds.VehicleStorage
                     continue;
                 }
 
-                destination.Inventory
-                    .Slots[i]
-                    .SetItem(
-                        sourceSlot.Item,
-                        sourceSlot.Quantity
-                    );
+                if (sourceSlot.Item.IsWeapon)
+                {
+                    destination.Inventory
+                        .Slots[i]
+                        .SetItem(
+                            sourceSlot.Item,
+                            sourceSlot.Quantity,
+                            sourceSlot.Ammo
+                        );
+                }
+                else
+                {
+                    destination.Inventory
+                        .Slots[i]
+                        .SetItem(
+                            sourceSlot.Item,
+                            sourceSlot.Quantity
+                        );
+                }
             }
         }
 
@@ -469,16 +482,32 @@ namespace SurvivalNeeds.VehicleStorage
                         string.Empty;
 
                     if (slot != null &&
-                        !slot.IsEmpty &&
-                        slot.Item != null &&
-                        slot.Quantity > 0)
+                            !slot.IsEmpty &&
+                                slot.Item != null &&
+                                slot.Quantity > 0)
                     {
-                        value =
-                            slot.Item.Id +
-                            "|" +
-                            slot.Quantity.ToString(
-                                CultureInfo.InvariantCulture
-                            );
+                        if (slot.Item.IsWeapon)
+                        {
+                            value =
+                                slot.Item.Id +
+                                "|" +
+                                slot.Quantity.ToString(
+                                    CultureInfo.InvariantCulture
+                                ) +
+                                "|" +
+                                slot.Ammo.ToString(
+                                    CultureInfo.InvariantCulture
+                                );
+                        }
+                        else
+                        {
+                            value =
+                                slot.Item.Id +
+                                "|" +
+                                slot.Quantity.ToString(
+                                    CultureInfo.InvariantCulture
+                                );
+                        }
                     }
 
                     lines.Add(
@@ -616,7 +645,8 @@ namespace SurvivalNeeds.VehicleStorage
                     string[] parts =
                         value.Split('|');
 
-                    if (parts.Length != 2)
+                    if (parts.Length < 2 ||
+                        parts.Length > 3)
                     {
                         continue;
                     }
@@ -658,12 +688,48 @@ namespace SurvivalNeeds.VehicleStorage
                             item.MaxStack;
                     }
 
-                    vehicleInventory.Inventory
-                        .Slots[slotIndex]
-                        .SetItem(
-                            item,
-                            quantity
-                        );
+                    if (item.IsWeapon)
+                    {
+                        int ammo =
+                            item.StartingAmmo;
+
+                        if (parts.Length == 3)
+                        {
+                            int loadedAmmo;
+
+                            if (int.TryParse(
+                                parts[2],
+                                NumberStyles.Integer,
+                                CultureInfo.InvariantCulture,
+                                out loadedAmmo))
+                            {
+                                ammo =
+                                    loadedAmmo;
+                            }
+                        }
+
+                        if (ammo < 0)
+                        {
+                            ammo = 0;
+                        }
+
+                        vehicleInventory.Inventory
+                            .Slots[slotIndex]
+                            .SetItem(
+                                item,
+                                quantity,
+                                ammo
+                            );
+                    }
+                    else
+                    {
+                        vehicleInventory.Inventory
+                            .Slots[slotIndex]
+                            .SetItem(
+                                item,
+                                quantity
+                            );
+                    }
                 }
             }
             catch

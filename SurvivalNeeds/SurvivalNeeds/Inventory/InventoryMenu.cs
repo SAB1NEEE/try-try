@@ -607,8 +607,74 @@ namespace SurvivalNeeds.UI
                 " KG"
             );
 
+            float informationRowY =
+    panelY + 0.345f;
+
+            DrawInformationRow(
+                panelX,
+                informationRowY,
+                panelWidth,
+                "CATEGORY",
+                item.IsWeapon
+                    ? "Weapon"
+                    : item.Category.ToString()
+            );
+
+            informationRowY += 0.050f;
+
+            DrawInformationRow(
+                panelX,
+                informationRowY,
+                panelWidth,
+                "QUANTITY",
+                slot.Quantity.ToString()
+            );
+
+            informationRowY += 0.050f;
+
+            // Show exact ammunition for weapons.
+            if (item.IsWeapon)
+            {
+                DrawInformationRow(
+                    panelX,
+                    informationRowY,
+                    panelWidth,
+                    item.IsMeleeWeapon
+                        ? "WEAPON TYPE"
+                        : "AMMUNITION",
+                    item.IsMeleeWeapon
+                        ? "MELEE"
+                        : slot.Ammo.ToString()
+                );
+
+                informationRowY += 0.050f;
+            }
+
+            DrawInformationRow(
+                panelX,
+                informationRowY,
+                panelWidth,
+                "UNIT WEIGHT",
+                item.Weight.ToString("0.00") +
+                " KG"
+            );
+
+            informationRowY += 0.050f;
+
+            DrawInformationRow(
+                panelX,
+                informationRowY,
+                panelWidth,
+                "TOTAL WEIGHT",
+                (item.Weight * slot.Quantity)
+                    .ToString("0.00") +
+                " KG"
+            );
+
+            informationRowY += 0.050f;
+
             float effectRowY =
-    panelY + 0.545f;
+                informationRowY;
 
             if (item.HungerRestore != 0f)
             {

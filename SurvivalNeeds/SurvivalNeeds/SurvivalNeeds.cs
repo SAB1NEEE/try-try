@@ -212,6 +212,7 @@ namespace SurvivalNeeds
                     new GunStoreMenu(
                     gunStore,
                     inventory,
+                    vehicleInventoryManager,
                     money,
                     SaveGame
                     );

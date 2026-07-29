@@ -683,10 +683,28 @@ namespace SurvivalNeeds.UI
                     : Color.White
             );
 
+            string itemInformation =
+    slot.Item.Description;
+
+            if (slot.Item.IsWeapon)
+            {
+                if (slot.Item.IsMeleeWeapon)
+                {
+                    itemInformation +=
+                        " | MELEE WEAPON";
+                }
+                else
+                {
+                    itemInformation +=
+                        " | AMMO: " +
+                        slot.Ammo;
+                }
+            }
+
             DrawText(
                 ShortenText(
-                    slot.Item.Description,
-                    42
+                    itemInformation,
+                    55
                 ),
                 x + 0.008f,
                 y + 0.035f,

@@ -461,17 +461,18 @@ namespace SurvivalNeeds.Inventory
 // ============================================
 
 {
-    "weapon_pistol",
+    "weapon_pistol", // Dictionary key used by ItemDatabase
+
     new InventoryItem(
-        "weapon_pistol",
-        "Pistol",
-        "A standard semi-automatic handgun.",
-        ItemCategory.Tool,
-        1.00f,
-        500,
-        "weapon_pistol.png",
-        WeaponHash.Pistol,
-        36
+        "weapon_pistol", // Item ID saved in inventory.ini
+        "Pistol", // Name shown in the inventory
+        "A standard semi-automatic handgun.", // Item description
+        ItemCategory.Tool, // Temporary category for weapons
+        1.00f, // Weight in kilograms
+        500, // Purchase price
+        "weapon_pistol.png", // Icon filename
+        WeaponHash.Pistol, // GTA weapon type
+        36 // Starting ammunition
     )
 },
 
@@ -566,18 +567,19 @@ namespace SurvivalNeeds.Inventory
 },
 
 {
-    "weapon_knife",
+    "weapon_knife", // Dictionary key
+
     new InventoryItem(
-        "weapon_knife",
-        "Knife",
-        "A small and concealable melee weapon.",
-        ItemCategory.Tool,
-        0.40f,
-        150,
-        "weapon_knife.png",
-        WeaponHash.Knife,
-        0,
-        true
+        "weapon_knife", // Item ID
+        "Knife", // Display name
+        "A small and concealable melee weapon.", // Description
+        ItemCategory.Tool, // Temporary weapon category
+        0.40f, // Weight in kilograms
+        150, // Purchase price
+        "weapon_knife.png", // Icon filename
+        WeaponHash.Knife, // GTA weapon type
+        0, // No starting ammunition
+        true // This is a melee weapon
     )
 },
 

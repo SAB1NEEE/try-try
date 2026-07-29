@@ -28,7 +28,7 @@ namespace SurvivalNeeds.Inventory
         // INVENTORY CHANGED
         //====================================================
 
-        private void NotifyInventoryChanged()
+        public void NotifyInventoryChanged()
         {
             InventoryChanged?.Invoke();
         }
@@ -205,13 +205,20 @@ namespace SurvivalNeeds.Inventory
         // MOVE ITEM
         //====================================================
 
+        //====================================================
+        // MOVE ITEM
+        //====================================================
+
         public bool MoveItem(
             int slotIndex,
             InventoryManager target,
             int amount = 1)
         {
-            if (target == null)
+            if (target == null ||
+                target.Slots == null)
+            {
                 return false;
+            }
 
             if (slotIndex < 0 ||
                 slotIndex >= Slots.Count)
@@ -219,27 +226,88 @@ namespace SurvivalNeeds.Inventory
                 return false;
             }
 
-            InventorySlot slot =
+            InventorySlot sourceSlot =
                 Slots[slotIndex];
 
-            if (slot.IsEmpty ||
-                slot.Item == null)
+            if (sourceSlot == null ||
+                sourceSlot.IsEmpty ||
+                sourceSlot.Item == null)
             {
                 return false;
             }
 
             if (amount <= 0)
-                return false;
-
-            if (amount >
-                slot.Quantity)
             {
-                amount =
-                    slot.Quantity;
+                return false;
             }
 
+            InventoryItem item =
+                sourceSlot.Item;
+
+            if (amount >
+                sourceSlot.Quantity)
+            {
+                amount =
+                    sourceSlot.Quantity;
+            }
+
+            //================================================
+            // MOVE WEAPON WITH ITS EXACT AMMO
+            //================================================
+
+            if (item.IsWeapon)
+            {
+                InventorySlot emptyTargetSlot =
+                    null;
+
+                foreach (InventorySlot targetSlot
+                    in target.Slots)
+                {
+                    if (targetSlot != null &&
+                        targetSlot.IsEmpty)
+                    {
+                        emptyTargetSlot =
+                            targetSlot;
+
+                        break;
+                    }
+                }
+
+                if (emptyTargetSlot == null)
+                {
+                    return false;
+                }
+
+                int savedAmmo =
+                    sourceSlot.Ammo;
+
+                if (savedAmmo < 0)
+                {
+                    savedAmmo = 0;
+                }
+
+                emptyTargetSlot.SetItem(
+                    item,
+                    1,
+                    savedAmmo
+                );
+
+                RemoveItem(
+                    slotIndex,
+                    1
+                );
+
+                target.NotifyInventoryChanged();
+
+                return true;
+            }
+
+            //================================================
+            // MOVE NORMAL STACKABLE ITEM
+            //================================================
+
             if (!target.AddItem(
-                slot.Item.Id,
+                item.Id,
                 amount))
             {
                 return false;
