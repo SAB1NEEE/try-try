@@ -80,6 +80,7 @@
     <Compile Include="Police\ArrestSystem.cs" />
     <Compile Include="Police\BustedScreen.cs" />
     <Compile Include="Police\ConfiscationSystem.cs" />
+    <Compile Include="Police\EvidenceSaveSystem.cs" />
     <Compile Include="Police\HandcuffSystem.cs" />
     <Compile Include="Police\PoliceSpawn.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
@@ -93,6 +94,7 @@
     <Compile Include="Systems\StressSystem.cs" />
     <Compile Include="Systems\SurvivalEffectsSystem.cs" />
     <Compile Include="Systems\ThirstSystem.cs" />
+    <Compile Include="Systems\WeaponWheelSyncSystem.cs" />
     <Compile Include="UI\HUD.cs" />
     <Compile Include="UI\VehicleStorageMenu.cs" />
     <Compile Include="VehicleStorage\ClaimedVehicleInfo.cs" />
@@ -100,6 +102,9 @@
     <Compile Include="Managers\VehicleInventoryManager.cs" />
     <Compile Include="Systems\VehicleStorageSystem.cs" />
     <Compile Include="Vendors\ConvenienceStore.cs" />
+    <Compile Include="Vendors\GunStore.cs" />
+    <Compile Include="Vendors\GunStoreLocation.cs" />
+    <Compile Include="Vendors\GunStoreMenu.cs" />
     <Compile Include="Vendors\StreetVendors.cs" />
     <Compile Include="Vendors\LiqourStores.cs" />
     <Compile Include="Vendors\PharmacyStore.cs" />
@@ -113,6 +118,8 @@
     <Compile Include="Vendors\VendorMenu.cs" />
     <Compile Include="Vendors\VendorsManager.cs" />
     <Compile Include="Vendors\VendorType.cs" />
+    <Compile Include="WeaponInventory\WeaponInventoryItem.cs" />
+    <Compile Include="WeaponInventory\WeaponInventoryManager.cs" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="Assets\Icons\" />

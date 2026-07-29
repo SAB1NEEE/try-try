@@ -12,6 +12,7 @@ using SurvivalNeeds.Phone;
 using SurvivalNeeds.Vendors;
 using SurvivalNeeds.BankingSystem;
 using SurvivalNeeds.Police;
+using SurvivalNeeds.WeaponInventory;
 using System;
 using System.Windows.Forms;
 
@@ -62,6 +63,13 @@ namespace SurvivalNeeds
             inventory =
                 new InventoryManager();
 
+        private readonly WeaponInventoryManager
+            weaponInventoryManager =
+                new WeaponInventoryManager();
+
+        private WeaponWheelSyncSystem
+            weaponWheelSyncSystem;
+
         private InventoryMenu inventoryMenu;
 
         private bool playerInventoryOpen =
@@ -88,6 +96,15 @@ namespace SurvivalNeeds
 
         private VendorsManager
         vendorsManager;
+
+        private GunStore
+            gunStore;
+
+        private GunStoreLocations
+            gunStoreLocations;
+
+        private GunStoreMenu
+            gunStoreMenu;
 
         private readonly HUD hud =
             new HUD();
@@ -143,11 +160,19 @@ namespace SurvivalNeeds
             {
                 LoadGame();
 
+                weaponWheelSyncSystem =
+                    new WeaponWheelSyncSystem(
+                    inventory
+                );
+
                 arrestSystem =
-                    new ArrestSystem(
-                        money,
-                        inventory
-                    );
+                new ArrestSystem(
+                    money,
+                    inventory,
+                    weaponInventoryManager,
+                    saveSystem,
+                    SaveGame
+                );
 
                 inventoryMenu =
                     new InventoryMenu(
@@ -182,6 +207,21 @@ namespace SurvivalNeeds
                     new VendorsManager(
                     inventory,
                     money
+                    );
+
+                gunStore =
+                    new GunStore();
+
+                gunStoreLocations =
+                    new GunStoreLocations();
+
+                gunStoreMenu =
+                    new GunStoreMenu(
+                    gunStore,
+                    inventory,
+                    weaponInventoryManager,
+                    money,
+                    SaveGame
                     );
 
                 atmMenu =
@@ -239,21 +279,6 @@ namespace SurvivalNeeds
                 saveManager.LoadInventory(
                     inventory
                 );
-
-            if (inventoryLoaded)
-            {
-                Notification.Show(
-                    "~g~Inventory loaded",
-                    false
-                );
-            }
-            else
-            {
-                Notification.Show(
-                    "~y~No inventory save found",
-                    false
-                );
-            }
         }
 
         //====================================================
@@ -261,23 +286,38 @@ namespace SurvivalNeeds
         //====================================================
 
         private void OnTick(
-            object sender,
-            EventArgs e)
+    object sender,
+    EventArgs e)
         {
-            // Always update and draw survival HUD first.
+            // Disable the vanilla Ammu-Nation shop script.
+            Function.Call(
+                Hash.TERMINATE_ALL_SCRIPTS_WITH_THIS_NAME,
+                "gunclub_shop"
+            );
+
             animationSystem.Update();
             ConsumableManager.Update();
             vehicleInventoryManager.Update();
+            weaponWheelSyncSystem?.Sync();
             deathPenaltySystem?.Update();
             arrestSystem?.Update();
+
             UpdateSurvival();
             UpdateAutoSave();
 
             personalVehiclePhoneSystem?.Update();
 
-            // Update world interaction systems.
-            vendorsManager?.Update();
-            atmSystem?.Update();
+            UpdateGunStore();
+
+            bool gunStoreMenuOpen =
+                gunStoreMenu != null &&
+                gunStoreMenu.Visible;
+
+            if (!gunStoreMenuOpen)
+            {
+                vendorsManager?.Update();
+                atmSystem?.Update();
+            }
 
             bool vendorMenuOpen =
                 vendorsManager != null &&
@@ -287,12 +327,10 @@ namespace SurvivalNeeds
                 atmMenu != null &&
                 atmMenu.Visible;
 
-            // Process LemonUI ATM menu.
             atmMenu?.Process();
 
-            // Prevent other interaction systems while a menu is open,
-            // but do not stop the HUD from drawing.
-            if (vendorMenuOpen ||
+            if (gunStoreMenuOpen ||
+                vendorMenuOpen ||
                 atmMenuOpen)
             {
                 DrawMenus();
@@ -304,6 +342,43 @@ namespace SurvivalNeeds
             HandleVehicleTrunk();
             UpdateLoot();
             DrawMenus();
+        }
+
+        //====================================================
+        // GUN STORE
+        //====================================================
+
+        private void UpdateGunStore()
+        {
+            if (gunStoreMenu == null ||
+                gunStoreLocations == null)
+            {
+                return;
+            }
+
+            // When open, GunStoreMenu.Update handles
+            // input and draws the interface.
+            if (gunStoreMenu.Visible)
+            {
+                gunStoreMenu.Update();
+                return;
+            }
+
+            bool shouldOpen =
+                gunStoreLocations.Update();
+
+            if (shouldOpen)
+            {
+                // Close the normal inventory if it is open.
+                if (inventoryMenu != null &&
+                    inventoryMenu.Visible)
+                {
+                    inventoryMenu.Toggle();
+                    playerInventoryOpen = false;
+                }
+
+                gunStoreMenu.Open();
+            }
         }
 
         //====================================================

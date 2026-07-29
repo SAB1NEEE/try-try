@@ -8,6 +8,8 @@ namespace SurvivalNeeds.Inventory
 {
     public class InventoryManager
     {
+
+        public const float MaximumWeight = 40f;
         public List<InventorySlot> Slots { get; private set; }
 
         public event Action InventoryChanged;
@@ -462,6 +464,61 @@ namespace SurvivalNeeds.Inventory
             }
 
             return false;
+
+        }
+
+        //====================================================
+        // INVENTORY WEIGHT
+        //====================================================
+
+        public float GetCurrentWeight()
+        {
+            float totalWeight = 0f;
+
+            foreach (InventorySlot slot in Slots)
+            {
+                if (slot == null ||
+                    slot.IsEmpty ||
+                    slot.Item == null ||
+                    slot.Quantity <= 0)
+                {
+                    continue;
+                }
+
+                totalWeight +=
+                    slot.Item.Weight *
+                    slot.Quantity;
+            }
+            return totalWeight;
+        }
+
+        public bool CanCarryWeight(
+            float additionalWeight,
+            float maximumWeight = MaximumWeight)
+        {
+            if (additionalWeight < 0f)
+            {
+                return false;
+            }
+
+            return GetCurrentWeight() +
+                additionalWeight <=
+                maximumWeight;
+        }
+
+        public float GetRemainingWeight(
+            float maximumWeight = MaximumWeight)
+        {
+            float remainingWeight =
+                maximumWeight -
+                GetCurrentWeight();
+
+            if (remainingWeight < 0f)
+            {
+                remainingWeight = 0f;
+            }
+
+            return remainingWeight;
         }
     }
 }

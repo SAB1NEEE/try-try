@@ -1,4 +1,5 @@
-﻿using GTA.UI;
+﻿using GTA;
+using GTA.UI;
 using System;
 using System.Globalization;
 using System.IO;
@@ -9,6 +10,7 @@ namespace SurvivalNeeds.Systems
     {
         private readonly string saveFolder;
         private readonly string saveFile;
+        public bool WeaponsConfiscated { get; private set; }
 
         public SaveSystem()
         {
@@ -90,6 +92,9 @@ namespace SurvivalNeeds.Systems
         bankAccount.Balance.ToString(
             CultureInfo.InvariantCulture),
 
+    "WeaponsConfiscated=" +     
+        WeaponsConfiscated,
+
     "MoneyMode=GTA"
 };
 
@@ -105,6 +110,11 @@ namespace SurvivalNeeds.Systems
                     ex.Message
                 );
             }
+        }
+
+        public void MarkWeaponsConfiscated()
+        {
+            WeaponsConfiscated = true;
         }
 
         public void Load(
@@ -130,6 +140,7 @@ namespace SurvivalNeeds.Systems
                 bool hasSavedCash = false;
                 bool usesGtaMoney = false;
                 bool hasBankAccount = false;
+                bool weaponsConfiscated = false;
                 string accountNumber = "";
                 int bankBalance = 0;
 
@@ -146,6 +157,18 @@ namespace SurvivalNeeds.Systems
 
                     string valueText =
                         parts[1].Trim();
+
+                    if (key.Equals(
+                        "WeaponsConfiscated",
+                        StringComparison.OrdinalIgnoreCase))
+                    {
+                        bool.TryParse(
+                            valueText,
+                            out weaponsConfiscated
+                        );
+
+                        continue;
+                    }
 
                     if (key.Equals(
                         "MoneyMode",
@@ -232,6 +255,20 @@ namespace SurvivalNeeds.Systems
                         case "Stress":
                             stress.Set(value);
                             break;
+                    }
+                }
+
+                WeaponsConfiscated = weaponsConfiscated;
+
+                if (WeaponsConfiscated)
+                {
+                    GTA.Ped player =
+                        GTA.Game.Player.Character;
+
+                    if (player != null &&
+                        player.Exists())
+                    {
+                        player.Weapons.RemoveAll();
                     }
                 }
 

@@ -4,6 +4,7 @@ using GTA.Native;
 using GTA.UI;
 using SurvivalNeeds.Inventory;
 using SurvivalNeeds.Systems;
+using SurvivalNeeds.WeaponInventory;
 using System;
 using System.Windows.Forms;
 
@@ -40,7 +41,9 @@ namespace SurvivalNeeds.Police
         private const float PoliceStationHeading = 90.0f;
 
         private readonly ConfiscationSystem confiscationSystem;
+        private readonly WeaponInventoryManager weaponInventoryManager;
 
+        private readonly Action saveAfterConfiscation;
         public void Update()
         {
             player = Game.Player.Character;
@@ -85,12 +88,22 @@ namespace SurvivalNeeds.Police
 
         public ArrestSystem(
             MoneySystem money,
-            InventoryManager inventory)
+            InventoryManager inventory,
+            WeaponInventoryManager weaponInventoryManager,
+            SaveSystem saveSystem,
+            Action saveAfterConfiscation)
         {
+            this.weaponInventoryManager =
+                weaponInventoryManager;
+
+            this.saveAfterConfiscation =
+                saveAfterConfiscation;
+
             confiscationSystem =
                 new ConfiscationSystem(
                     money,
-                    inventory
+                    inventory,
+                    saveSystem
                 );
         }
 
@@ -394,8 +407,21 @@ namespace SurvivalNeeds.Police
 
             player.Heading = PoliceStationHeading;
 
-            // Confiscate cash, inventory and weapons.
+            // Confiscate cash, normal inventory
+            // and GTA weapons.
             confiscationSystem.ConfiscatePlayer();
+
+            // Remove all weapons from the custom
+            // persistent weapon inventory.
+            if (weaponInventoryManager != null)
+            {
+                weaponInventoryManager.Clear();
+            }
+
+            // Immediately save the empty weapon inventory.
+            // This prevents confiscated weapons from returning
+            // after reloading the script or restarting GTA.
+            saveAfterConfiscation?.Invoke();
 
             if (arrestingOfficer != null &&
                 arrestingOfficer.Exists())

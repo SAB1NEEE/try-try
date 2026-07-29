@@ -8,24 +8,27 @@ namespace SurvivalNeeds.Police
     {
         private readonly MoneySystem money;
         private readonly InventoryManager inventory;
+        private readonly SaveSystem saveSystem;
+
 
         public ConfiscationSystem(
             MoneySystem money,
-            InventoryManager inventory)
+            InventoryManager inventory,
+            SaveSystem saveSystem)
         {
             this.money = money;
             this.inventory = inventory;
+            this.saveSystem = saveSystem;
         }
 
         public void ConfiscatePlayer()
         {
-            // Pocket cash
             money.ConfiscateCash();
 
-            // GTA weapons
             Game.Player.Character.Weapons.RemoveAll();
 
-            // Survival inventory
+            saveSystem.MarkWeaponsConfiscated();
+
             inventory.Clear();
         }
     }

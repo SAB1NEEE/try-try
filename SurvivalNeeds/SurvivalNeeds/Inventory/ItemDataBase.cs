@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using GTA;
 
 namespace SurvivalNeeds.Inventory
 {
@@ -454,6 +455,163 @@ namespace SurvivalNeeds.Inventory
                         0,
                         "cigar.png")
                 },
+
+                // ============================================
+// WEAPONS
+// ============================================
+
+{
+    "weapon_pistol",
+    new InventoryItem(
+        "weapon_pistol",
+        "Pistol",
+        "A standard semi-automatic handgun.",
+        ItemCategory.Tool,
+        1.00f,
+        500,
+        "weapon_pistol.png",
+        WeaponHash.Pistol,
+        36
+    )
+},
+
+{
+    "weapon_combatpistol",
+    new InventoryItem(
+        "weapon_combatpistol",
+        "Combat Pistol",
+        "A reliable handgun designed for combat use.",
+        ItemCategory.Tool,
+        1.10f,
+        850,
+        "weapon_combatpistol.png",
+        WeaponHash.CombatPistol,
+        36
+    )
+},
+
+{
+    "weapon_microsmg",
+    new InventoryItem(
+        "weapon_microsmg",
+        "Micro SMG",
+        "A compact automatic weapon with a high rate of fire.",
+        ItemCategory.Tool,
+        2.30f,
+        2200,
+        "weapon_microsmg.png",
+        WeaponHash.MicroSMG,
+        90
+    )
+},
+
+{
+    "weapon_smg",
+    new InventoryItem(
+        "weapon_smg",
+        "SMG",
+        "A full-size submachine gun suitable for close combat.",
+        ItemCategory.Tool,
+        2.80f,
+        3200,
+        "weapon_smg.png",
+        WeaponHash.SMG,
+        120
+    )
+},
+
+{
+    "weapon_pumpshotgun",
+    new InventoryItem(
+        "weapon_pumpshotgun",
+        "Pump Shotgun",
+        "A powerful pump-action shotgun.",
+        ItemCategory.Tool,
+        3.60f,
+        2800,
+        "weapon_pumpshotgun.png",
+        WeaponHash.PumpShotgun,
+        24
+    )
+},
+
+{
+    "weapon_assaultrifle",
+    new InventoryItem(
+        "weapon_assaultrifle",
+        "Assault Rifle",
+        "An automatic rifle with good stopping power.",
+        ItemCategory.Tool,
+        3.80f,
+        6500,
+        "weapon_assaultrifle.png",
+        WeaponHash.AssaultRifle,
+        120
+    )
+},
+
+{
+    "weapon_carbinerifle",
+    new InventoryItem(
+        "weapon_carbinerifle",
+        "Carbine Rifle",
+        "An accurate automatic rifle with balanced performance.",
+        ItemCategory.Tool,
+        3.50f,
+        7800,
+        "weapon_carbinerifle.png",
+        WeaponHash.CarbineRifle,
+        120
+    )
+},
+
+{
+    "weapon_knife",
+    new InventoryItem(
+        "weapon_knife",
+        "Knife",
+        "A small and concealable melee weapon.",
+        ItemCategory.Tool,
+        0.40f,
+        150,
+        "weapon_knife.png",
+        WeaponHash.Knife,
+        0,
+        true
+    )
+},
+
+{
+    "weapon_bat",
+    new InventoryItem(
+        "weapon_bat",
+        "Baseball Bat",
+        "A sturdy wooden baseball bat.",
+        ItemCategory.Tool,
+        1.20f,
+        200,
+        "weapon_bat.png",
+        WeaponHash.Bat,
+        0,
+        true
+    )
+},
+
+{
+    "weapon_crowbar",
+    new InventoryItem(
+        "weapon_crowbar",
+        "Crowbar",
+        "A heavy metal crowbar.",
+        ItemCategory.Tool,
+        1.80f,
+        250,
+        "weapon_crowbar.png",
+        WeaponHash.Crowbar,
+        0,
+        true
+    )
+},
             };
 
         public static InventoryItem GetItem(string itemId)

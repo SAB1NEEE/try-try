@@ -30,16 +30,6 @@ namespace SurvivalNeeds.Vendors
                 ),
 
                 new VendorItem(
-                    "hotdog",
-                    VendorCategory.Food
-                ),
-
-                new VendorItem(
-                    "burger",
-                    VendorCategory.Food
-                ),
-
-                new VendorItem(
                     "chips",
                     VendorCategory.Food
                 ),
@@ -120,11 +110,6 @@ namespace SurvivalNeeds.Vendors
 
                 new VendorItem(
                     "chips",
-                    VendorCategory.Food
-                ),
-
-                new VendorItem(
-                    "chocolate",
                     VendorCategory.Food
                 ),
 
