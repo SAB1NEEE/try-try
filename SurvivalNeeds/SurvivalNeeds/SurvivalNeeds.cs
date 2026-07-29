@@ -12,7 +12,6 @@ using SurvivalNeeds.Phone;
 using SurvivalNeeds.Vendors;
 using SurvivalNeeds.BankingSystem;
 using SurvivalNeeds.Police;
-using SurvivalNeeds.WeaponInventory;
 using System;
 using System.Windows.Forms;
 
@@ -62,10 +61,6 @@ namespace SurvivalNeeds
         private readonly InventoryManager
             inventory =
                 new InventoryManager();
-
-        private readonly WeaponInventoryManager
-            weaponInventoryManager =
-                new WeaponInventoryManager();
 
         private WeaponWheelSyncSystem
             weaponWheelSyncSystem;
@@ -166,13 +161,11 @@ namespace SurvivalNeeds
                 );
 
                 arrestSystem =
-                new ArrestSystem(
+                    new ArrestSystem(
                     money,
                     inventory,
-                    weaponInventoryManager,
-                    saveSystem,
-                    SaveGame
-                );
+                    saveSystem
+                    );
 
                 inventoryMenu =
                     new InventoryMenu(
@@ -219,7 +212,6 @@ namespace SurvivalNeeds
                     new GunStoreMenu(
                     gunStore,
                     inventory,
-                    weaponInventoryManager,
                     money,
                     SaveGame
                     );
@@ -268,17 +260,16 @@ namespace SurvivalNeeds
         private void LoadGame()
         {
             saveSystem.Load(
-            hunger,
-            thirst,
-            stress,
-            money,
-            bankAccount
+                hunger,
+                thirst,
+                stress,
+                money,
+                bankAccount
             );
 
-            bool inventoryLoaded =
-                saveManager.LoadInventory(
-                    inventory
-                );
+            saveManager.LoadInventory(
+                inventory
+            );
         }
 
         //====================================================

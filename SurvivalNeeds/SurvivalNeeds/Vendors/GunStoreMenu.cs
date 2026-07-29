@@ -7,7 +7,6 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.Globalization;
 using SurvivalNeeds.Inventory;
-using SurvivalNeeds.WeaponInventory;
 using SurvivalNeeds.Loot;
 using SurvivalNeeds.Systems;
 using System.IO;
@@ -25,10 +24,6 @@ public class GunStoreMenu
 
     private readonly GunStore gunStore;
     private readonly InventoryManager inventory;
-
-    private readonly WeaponInventoryManager
-        weaponInventory;
-
     private readonly MoneySystem money;
     private readonly Action saveAfterPurchase;
 
@@ -177,7 +172,6 @@ public class GunStoreMenu
     public GunStoreMenu(
     GunStore gunStore,
     InventoryManager inventory,
-    WeaponInventoryManager weaponInventory,
     MoneySystem money,
     Action saveAfterPurchase)
     {
@@ -186,9 +180,6 @@ public class GunStoreMenu
 
         this.inventory =
             inventory;
-
-        this.weaponInventory =
-            weaponInventory;
 
         this.money =
             money;
@@ -1342,15 +1333,6 @@ public class GunStoreMenu
             return;
         }
 
-        if (weaponInventory == null)
-        {
-            Notification.Show(
-                "~r~Weapon inventory unavailable."
-            );
-
-            return;
-        }
-
         string resultMessage;
         int newAmmoAmount;
 
@@ -1373,22 +1355,6 @@ public class GunStoreMenu
             );
 
             return;
-        }
-
-        bool ammoUpdated =
-            weaponInventory.SetAmmo(
-                item.WeaponHash,
-                newAmmoAmount
-            );
-
-        if (!ammoUpdated)
-        {
-            weaponInventory.AddWeapon(
-                item.WeaponHash,
-                item.Name,
-                item.Weight,
-                newAmmoAmount
-            );
         }
 
         saveAfterPurchase?.Invoke();
@@ -1530,28 +1496,10 @@ public class GunStoreMenu
 
     private float GetTotalCarriedWeight()
     {
-        float inventoryWeight =
-            inventory == null
-                ? 0f
-                : inventory.GetCurrentWeight();
-
-        float weaponWeight =
-            GetOwnedWeaponWeight();
-
-        return inventoryWeight +
-            weaponWeight;
-    }
-
-    //====================================================
-    // OWNED WEAPON WEIGHT
-    //====================================================
-
-    private float GetOwnedWeaponWeight()
-    {
-        if (weaponInventory == null)
+        if (inventory == null)
             return 0f;
 
-        return weaponInventory.GetTotalWeight();
+        return inventory.GetCurrentWeight();
     }
 
     //====================================================
