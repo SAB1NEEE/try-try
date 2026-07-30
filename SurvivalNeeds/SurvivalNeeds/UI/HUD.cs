@@ -1358,91 +1358,86 @@ namespace SurvivalNeeds.UI
         }
 
         private void CreateCircleTexture(
-            string texturePath,
-            int fillLevel,
-            Color color)
+    string texturePath,
+    int fillLevel,
+    Color color)
+{
+    if (File.Exists(texturePath))
+    {
+        return;
+    }
+
+    const int textureSize = 256;
+
+    using (Bitmap bitmap =
+        new Bitmap(
+            textureSize,
+            textureSize,
+            System.Drawing.Imaging
+                .PixelFormat
+                .Format32bppArgb
+        ))
+    {
+        using (Graphics graphics =
+            Graphics.FromImage(bitmap))
         {
-            if (File.Exists(
-                texturePath))
-            {
-                return;
-            }
+            graphics.Clear(
+                Color.Transparent
+            );
 
-            const int textureSize =
-                128;
+            graphics.SmoothingMode =
+                System.Drawing.Drawing2D
+                    .SmoothingMode.AntiAlias;
 
-            using (Bitmap bitmap =
-                new Bitmap(
+            graphics.CompositingQuality =
+                System.Drawing.Drawing2D
+                    .CompositingQuality.HighQuality;
+
+            graphics.InterpolationMode =
+                System.Drawing.Drawing2D
+                    .InterpolationMode.HighQualityBicubic;
+
+            graphics.PixelOffsetMode =
+                System.Drawing.Drawing2D
+                    .PixelOffsetMode.HighQuality;
+
+            float fillHeight =
+                textureSize *
+                fillLevel /
+                100f;
+
+            graphics.SetClip(
+                new RectangleF(
+                    0f,
+                    textureSize - fillHeight,
                     textureSize,
-                    textureSize,
-                    System.Drawing.Imaging
-                        .PixelFormat
-                        .Format32bppArgb
-                ))
+                    fillHeight
+                )
+            );
+
+            using (SolidBrush brush =
+                new SolidBrush(color))
             {
-                using (Graphics graphics =
-                    Graphics.FromImage(
-                        bitmap
-                    ))
-                {
-                    graphics.Clear(
-                        Color.Transparent
-                    );
-
-                    graphics.SmoothingMode =
-                        System.Drawing.Drawing2D
-                            .SmoothingMode
-                            .AntiAlias;
-
-                    graphics.CompositingQuality =
-                        System.Drawing.Drawing2D
-                            .CompositingQuality
-                            .HighQuality;
-
-                    graphics.InterpolationMode =
-                        System.Drawing.Drawing2D
-                            .InterpolationMode
-                            .HighQualityBicubic;
-
-                    float fillHeight =
-                        textureSize *
-                        fillLevel /
-                        100f;
-
-                    graphics.SetClip(
-                        new RectangleF(
-                            0f,
-                            textureSize -
-                            fillHeight,
-                            textureSize,
-                            fillHeight
-                        )
-                    );
-
-                    using (SolidBrush brush =
-                        new SolidBrush(
-                            color
-                        ))
-                    {
-                        graphics.FillEllipse(
-                            brush,
-                            2f,
-                            2f,
-                            textureSize - 4f,
-                            textureSize - 4f
-                        );
-                    }
-
-                    graphics.ResetClip();
-                }
-
-                bitmap.Save(
-                    texturePath,
-                    System.Drawing.Imaging
-                        .ImageFormat.Png
+                graphics.FillEllipse(
+                    brush,
+                    1f,
+                    1f,
+                    textureSize - 2f,
+                    textureSize - 2f
                 );
             }
+
+            graphics.ResetClip();
         }
+
+        bitmap.Save(
+            texturePath,
+            System.Drawing.Imaging
+                .ImageFormat.Png
+        );
+    }
+}
+        
 
         //====================================================
         // RECTANGLE

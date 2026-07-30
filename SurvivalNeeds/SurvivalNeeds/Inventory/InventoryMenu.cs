@@ -8,10 +8,7 @@ using GTA.UI;
 using System;
 using System.Collections.Generic;
 using System.Drawing;
-using System.Globalization;
 using System.IO;
-using System.Security.Cryptography;
-using System.Text;
 using System.Windows.Forms;
 
 namespace SurvivalNeeds.UI
@@ -30,21 +27,6 @@ namespace SurvivalNeeds.UI
         private readonly Dictionary<string, CustomSprite>
             iconSprites =
                 new Dictionary<string, CustomSprite>();
-
-        private readonly List<CustomSprite>
-            rectangleSprites =
-                new List<CustomSprite>();
-
-        private readonly Dictionary<string, CustomSprite>
-            textSprites =
-                new Dictionary<string, CustomSprite>();
-
-        private readonly Dictionary<string, SizeF>
-            textSpriteSizes =
-                new Dictionary<string, SizeF>();
-
-        private int rectangleDrawIndex;
-        private string rectangleTexturePath;
 
         private readonly string iconsFolder;
 
@@ -125,8 +107,6 @@ namespace SurvivalNeeds.UI
         {
             if (!visible)
                 return;
-
-            rectangleDrawIndex = 0;
 
             UpdateItemList();
             HandleInput();
@@ -608,27 +588,7 @@ namespace SurvivalNeeds.UI
             );
 
             float informationRowY =
-    panelY + 0.345f;
-
-            DrawInformationRow(
-                panelX,
-                informationRowY,
-                panelWidth,
-                "CATEGORY",
-                item.IsWeapon
-                    ? "Weapon"
-                    : item.Category.ToString()
-            );
-
-            informationRowY += 0.050f;
-
-            DrawInformationRow(
-                panelX,
-                informationRowY,
-                panelWidth,
-                "QUANTITY",
-                slot.Quantity.ToString()
-            );
+            panelY + 0.345f;
 
             informationRowY += 0.050f;
 
@@ -1289,116 +1249,29 @@ namespace SurvivalNeeds.UI
         }
 
         private void DrawRectangle(
-            float x,
-            float y,
-            float width,
-            float height,
-            Color color)
+    float x,
+    float y,
+    float width,
+    float height,
+    Color color)
         {
-            if (string.IsNullOrWhiteSpace(
-                rectangleTexturePath))
-            {
-                rectangleTexturePath =
-                    Path.Combine(
-                        iconsFolder,
-                        "_ui_rectangle.png"
-                    );
+            float centerX =
+                x + width / 2f;
 
-                try
-                {
-                    Directory.CreateDirectory(
-                        iconsFolder
-                    );
+            float centerY =
+                y + height / 2f;
 
-                    if (!File.Exists(
-                        rectangleTexturePath))
-                    {
-                        using (Bitmap bitmap =
-                            new Bitmap(4, 4))
-                        {
-                            using (Graphics graphics =
-                                Graphics.FromImage(bitmap))
-                            {
-                                graphics.Clear(Color.White);
-                            }
-
-                            bitmap.Save(
-                                rectangleTexturePath,
-                                System.Drawing.Imaging
-                                    .ImageFormat.Png
-                            );
-                        }
-                    }
-                }
-                catch
-                {
-                    rectangleTexturePath = null;
-                    return;
-                }
-            }
-
-            CustomSprite rectangleSprite;
-
-            if (rectangleDrawIndex >=
-                rectangleSprites.Count)
-            {
-                rectangleSprite =
-                    new CustomSprite(
-                        rectangleTexturePath,
-                        new SizeF(1f, 1f),
-                        new PointF(0f, 0f),
-                        Color.White,
-                        0f,
-                        false
-                    );
-
-                rectangleSprites.Add(
-                    rectangleSprite
-                );
-            }
-            else
-            {
-                rectangleSprite =
-                    rectangleSprites[
-                        rectangleDrawIndex
-                    ];
-            }
-
-            rectangleDrawIndex++;
-
-            bool accentColor =
-                color.G >= 180 &&
-                color.B >= 140;
-
-            int visibleAlpha =
-                accentColor
-                    ? color.A
-                    : Math.Min(
-                        (int)color.A,
-                        190
-                    );
-
-            rectangleSprite.Position =
-                new PointF(
-                    x * GTA.UI.Screen.Width,
-                    y * GTA.UI.Screen.Height
-                );
-
-            rectangleSprite.Size =
-                new SizeF(
-                    width * GTA.UI.Screen.Width,
-                    height * GTA.UI.Screen.Height
-                );
-
-            rectangleSprite.Color =
-                Color.FromArgb(
-                    visibleAlpha,
-                    color.R,
-                    color.G,
-                    color.B
-                );
-
-            rectangleSprite.Draw();
+            Function.Call(
+                Hash.DRAW_RECT,
+                centerX,
+                centerY,
+                width,
+                height,
+                color.R,
+                color.G,
+                color.B,
+                color.A
+            );
         }
 
         private void DrawBorder(
@@ -1494,297 +1367,39 @@ namespace SurvivalNeeds.UI
         }
 
         private void DrawTextSprite(
-            string text,
-            float x,
-            float y,
-            float scale,
-            Color color,
-            Alignment alignment)
+    string text,
+    float x,
+    float y,
+    float scale,
+    Color color,
+    Alignment alignment)
         {
             if (string.IsNullOrEmpty(text))
             {
                 return;
             }
 
-            string textureKey =
-                "v4|" + text + "|" +
-                scale.ToString(
-                    "R",
-                    CultureInfo.InvariantCulture
-                ) + "|" +
-                color.ToArgb();
-
-            string spriteKey =
-                textureKey + "|" +
-                x.ToString(
-                    "R",
-                    CultureInfo.InvariantCulture
-                ) + "|" +
-                y.ToString(
-                    "R",
-                    CultureInfo.InvariantCulture
-                ) + "|" +
-                (int)alignment + "|" +
-                GTA.UI.Screen.Width + "|" +
-                GTA.UI.Screen.Height;
-
-            CustomSprite sprite;
-            SizeF textureSize;
-
-            if (!textSprites.TryGetValue(
-                spriteKey,
-                out sprite))
-            {
-                string cacheFolder =
-                    Path.Combine(
-                        iconsFolder,
-                        "_ui_text_cache"
-                    );
-
-                try
-                {
-                    Directory.CreateDirectory(
-                        cacheFolder
-                    );
-
-                    string texturePath =
-                        Path.Combine(
-                            cacheFolder,
-                            GetStableHash(
-                                textureKey
-                            ) + ".png"
-                        );
-
-                    textureSize =
-                        CreateTextTexture(
-                            texturePath,
-                            text,
-                            scale,
-                            color
-                        );
-
-                    sprite =
-                        new CustomSprite(
-                            texturePath,
-                            textureSize,
-                            new PointF(0f, 0f),
-                            Color.White,
-                            0f,
-                            false
-                        );
-
-                    textSprites[spriteKey] =
-                        sprite;
-
-                    textSpriteSizes[spriteKey] =
-                        textureSize;
-                }
-                catch
-                {
-                    return;
-                }
-            }
-            else if (!textSpriteSizes.TryGetValue(
-                spriteKey,
-                out textureSize))
-            {
-                return;
-            }
-
-            float screenX =
-                x * GTA.UI.Screen.Width;
-
-            float screenY =
-                y * GTA.UI.Screen.Height;
-
-            if (alignment == Alignment.Center)
-            {
-                screenX -= textureSize.Width / 2f;
-            }
-            else if (alignment == Alignment.Right)
-            {
-                screenX -= textureSize.Width;
-            }
-
-            sprite.Position =
-                new PointF(
-                    screenX,
-                    screenY
+            TextElement element =
+                new TextElement(
+                    text,
+                    new PointF(
+                        x * GTA.UI.Screen.Width,
+                        y * GTA.UI.Screen.Height
+                    ),
+                    scale,
+                    color
                 );
 
-            sprite.Size = textureSize;
-            sprite.Color = Color.White;
-            sprite.Draw();
-        }
+            element.Alignment =
+                alignment;
 
-        private SizeF CreateTextTexture(
-            string texturePath,
-            string text,
-            float scale,
-            Color color)
-        {
-            if (File.Exists(texturePath))
-            {
-                using (Image existingImage =
-                    Image.FromFile(texturePath))
-                {
-                    return new SizeF(
-                        existingImage.Width,
-                        existingImage.Height
-                    );
-                }
-            }
+            element.Outline =
+                true;
 
-            float fontSize =
-                Math.Max(
-                    9f,
-                    scale * 30f
-                );
+            element.Shadow =
+                true;
 
-            using (System.Drawing.Font font =
-                new System.Drawing.Font(
-                    "Arial",
-                    fontSize,
-                    FontStyle.Bold,
-                    GraphicsUnit.Pixel
-                ))
-            {
-                SizeF measuredSize;
-
-                using (Bitmap measurementBitmap =
-                    new Bitmap(1, 1))
-                {
-                    using (Graphics measurementGraphics =
-                        Graphics.FromImage(
-                            measurementBitmap
-                        ))
-                    {
-                        measuredSize =
-                            measurementGraphics.MeasureString(
-                                text,
-                                font
-                            );
-                    }
-                }
-
-                int bitmapWidth =
-                    Math.Max(
-                        4,
-                        (int)Math.Ceiling(
-                            measuredSize.Width
-                        ) + 10
-                    );
-
-                int bitmapHeight =
-                    Math.Max(
-                        4,
-                        (int)Math.Ceiling(
-                            measuredSize.Height
-                        ) + 10
-                    );
-
-                using (Bitmap bitmap =
-                    new Bitmap(
-                        bitmapWidth,
-                        bitmapHeight,
-                        System.Drawing.Imaging
-                            .PixelFormat.Format32bppArgb
-                    ))
-                {
-                    using (Graphics graphics =
-                        Graphics.FromImage(bitmap))
-                    {
-                        graphics.Clear(
-                            Color.Transparent
-                        );
-
-                        graphics.SmoothingMode =
-                            System.Drawing.Drawing2D
-                                .SmoothingMode
-                                .AntiAlias;
-
-                        graphics.TextRenderingHint =
-                            System.Drawing.Text
-                                .TextRenderingHint
-                                .AntiAliasGridFit;
-
-                        using (SolidBrush outlineBrush =
-                            new SolidBrush(
-                                Color.FromArgb(
-                                    245,
-                                    0,
-                                    0,
-                                    0
-                                )
-                            ))
-                        {
-                            for (int offsetX = -1;
-                                offsetX <= 1;
-                                offsetX++)
-                            {
-                                for (int offsetY = -1;
-                                    offsetY <= 1;
-                                    offsetY++)
-                                {
-                                    if (offsetX == 0 &&
-                                        offsetY == 0)
-                                    {
-                                        continue;
-                                    }
-
-                                    graphics.DrawString(
-                                        text,
-                                        font,
-                                        outlineBrush,
-                                        5f + offsetX,
-                                        4f + offsetY
-                                    );
-                                }
-                            }
-                        }
-
-                        using (SolidBrush textBrush =
-                            new SolidBrush(color))
-                        {
-                            graphics.DrawString(
-                                text,
-                                font,
-                                textBrush,
-                                5f,
-                                4f
-                            );
-                        }
-                    }
-
-                    bitmap.Save(
-                        texturePath,
-                        System.Drawing.Imaging
-                            .ImageFormat.Png
-                    );
-                }
-
-                return new SizeF(
-                    bitmapWidth,
-                    bitmapHeight
-                );
-            }
-        }
-
-        private string GetStableHash(
-            string value)
-        {
-            using (SHA1 sha1 = SHA1.Create())
-            {
-                byte[] bytes =
-                    Encoding.UTF8.GetBytes(value);
-
-                byte[] hash =
-                    sha1.ComputeHash(bytes);
-
-                return BitConverter
-                    .ToString(hash)
-                    .Replace("-", string.Empty);
-            }
+            element.Draw();
         }
     }
 }
