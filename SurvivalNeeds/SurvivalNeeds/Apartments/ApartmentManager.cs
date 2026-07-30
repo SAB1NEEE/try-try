@@ -1,7 +1,7 @@
 ﻿using GTA;
 using GTA.Math;
 using GTA.Native;
-using GTA.UI;   
+using GTA.UI;
 using SurvivalNeeds.Inventory;
 using SurvivalNeeds.Systems;
 using System;
@@ -43,13 +43,18 @@ namespace SurvivalNeeds.Apartments
             apartments =
                 new List<Apartment>();
 
+        private readonly List<Blip>
+            apartmentBlips =
+                new List<Blip>();
+
         private Apartment
             currentApartment;
 
         private ApartmentStorageMenu
             storageMenu;
 
-        private bool ePressedLastFrame;
+        private bool
+            ePressedLastFrame;
 
         public ApartmentManager(
             InventoryManager playerInventory,
@@ -81,6 +86,8 @@ namespace SurvivalNeeds.Apartments
                 new ApartmentStorageManager();
 
             CreateApartments();
+
+            CreateApartmentBlips();
         }
 
         public bool MenuVisible
@@ -115,13 +122,18 @@ namespace SurvivalNeeds.Apartments
             apartments.Add(
                 new Apartment(
                     "PINK_CAGE",
+
                     "Pink Cage Apartment",
+
+                    ApartmentClass.LowEnd,
+
+                    25000,
 
                     // Exterior entrance
                     new Vector3(
-                        326.45f,
-                        -212.10f,
-                        54.09f
+                        329.3502f,
+                        -224.9914f,
+                        57.0306f
                     ),
 
                     160f,
@@ -165,13 +177,14 @@ namespace SurvivalNeeds.Apartments
             apartments.Add(
                 new Apartment(
                     "CARSON_APARTMENT",
+
                     "Carson Avenue Apartment",
 
-                    /*
-                     * Temporary exterior position near the
-                     * Chamberlain Hills apartment complex.
-                     * We can adjust this to your chosen door.
-                     */
+                    ApartmentClass.LowEnd,
+
+                    25000,
+
+                    // Temporary exterior entrance
                     new Vector3(
                         -24.40f,
                         -1440.35f,
@@ -180,10 +193,7 @@ namespace SurvivalNeeds.Apartments
 
                     180f,
 
-                    /*
-                     * Both apartments currently reuse the
-                     * same GTA interior.
-                     */
+                    // Interior spawn
                     new Vector3(
                         151.36f,
                         -1007.88f,
@@ -192,18 +202,21 @@ namespace SurvivalNeeds.Apartments
 
                     180f,
 
+                    // Interior exit
                     new Vector3(
                         151.45f,
                         -1007.66f,
                         -99.00f
                     ),
 
+                    // Bed
                     new Vector3(
                         154.05f,
                         -1004.65f,
                         -99.00f
                     ),
 
+                    // Storage
                     new Vector3(
                         151.90f,
                         -1002.80f,
@@ -211,6 +224,75 @@ namespace SurvivalNeeds.Apartments
                     )
                 )
             );
+        }
+
+        //====================================================
+        // CREATE MAP BLIPS
+        //====================================================
+
+        private void CreateApartmentBlips()
+        {
+            DeleteApartmentBlips();
+
+            foreach (
+                Apartment apartment
+                in apartments)
+            {
+                if (apartment == null)
+                {
+                    continue;
+                }
+
+                Blip blip =
+                    Blip.Create(
+                        apartment.ExteriorEntrance
+                    );
+
+                if (blip == null ||
+                    !blip.Exists())
+                {
+                    continue;
+                }
+
+                blip.Sprite =
+                    BlipSprite.Safehouse;
+
+                blip.Color =
+                    BlipColor.Green;
+
+                blip.Name =
+                    apartment.Name;
+
+                blip.Scale =
+                    0.8f;
+
+                blip.IsShortRange =
+                    false;
+
+                apartmentBlips.Add(
+                    blip
+                );
+            }
+        }
+
+        //====================================================
+        // DELETE MAP BLIPS
+        //====================================================
+
+        private void DeleteApartmentBlips()
+        {
+            foreach (
+                Blip blip
+                in apartmentBlips)
+            {
+                if (blip != null &&
+                    blip.Exists())
+                {
+                    blip.Delete();
+                }
+            }
+
+            apartmentBlips.Clear();
         }
 
         //====================================================
@@ -292,10 +374,16 @@ namespace SurvivalNeeds.Apartments
                 nearbyApartment.ExteriorEntrance
             );
 
+            string className =
+                nearbyApartment
+                    .GetClassDisplayName();
+
             GTA.UI.Screen.ShowHelpTextThisFrame(
                 "Press ~INPUT_CONTEXT~ to enter " +
                 nearbyApartment.Name +
-                "."
+                ".~n~" +
+                className +
+                " apartment."
             );
 
             if (ePressed &&
@@ -589,12 +677,11 @@ namespace SurvivalNeeds.Apartments
             string profileId =
                 GetProfileId();
 
-            InventoryManager
-                apartmentInventory =
-                    storageManager.GetStorage(
-                        currentApartment.Id,
-                        profileId
-                    );
+            InventoryManager apartmentInventory =
+                storageManager.GetStorage(
+                    currentApartment.Id,
+                    profileId
+                );
 
             storageMenu =
                 new ApartmentStorageMenu(
@@ -682,7 +769,8 @@ namespace SurvivalNeeds.Apartments
             );
 
             Notification.Show(
-                "~g~You slept for 8 hours.",
+                "~g~You slept for 8 hours.~n~" +
+                "Hunger and thirst are now 20%.",
                 false
             );
         }

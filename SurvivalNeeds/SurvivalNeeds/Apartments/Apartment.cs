@@ -2,6 +2,13 @@
 
 namespace SurvivalNeeds.Apartments
 {
+    public enum ApartmentClass
+    {
+        LowEnd,
+        MidEnd,
+        HighEnd
+    }
+
     public class Apartment
     {
         public string Id
@@ -11,6 +18,18 @@ namespace SurvivalNeeds.Apartments
         }
 
         public string Name
+        {
+            get;
+            private set;
+        }
+
+        public ApartmentClass Class
+        {
+            get;
+            private set;
+        }
+
+        public int Price
         {
             get;
             private set;
@@ -61,6 +80,8 @@ namespace SurvivalNeeds.Apartments
         public Apartment(
             string id,
             string name,
+            ApartmentClass apartmentClass,
+            int price,
             Vector3 exteriorEntrance,
             float exteriorHeading,
             Vector3 interiorSpawn,
@@ -69,8 +90,17 @@ namespace SurvivalNeeds.Apartments
             Vector3 bedPosition,
             Vector3 storagePosition)
         {
-            Id = id;
-            Name = name;
+            Id =
+                id;
+
+            Name =
+                name;
+
+            Class =
+                apartmentClass;
+
+            Price =
+                price;
 
             ExteriorEntrance =
                 exteriorEntrance;
@@ -92,6 +122,24 @@ namespace SurvivalNeeds.Apartments
 
             StoragePosition =
                 storagePosition;
+        }
+
+        public string GetClassDisplayName()
+        {
+            switch (Class)
+            {
+                case ApartmentClass.LowEnd:
+                    return "Low-End";
+
+                case ApartmentClass.MidEnd:
+                    return "Mid-End";
+
+                case ApartmentClass.HighEnd:
+                    return "High-End";
+
+                default:
+                    return "Apartment";
+            }
         }
     }
 }
