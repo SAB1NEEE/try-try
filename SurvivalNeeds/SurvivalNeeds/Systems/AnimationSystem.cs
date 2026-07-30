@@ -274,8 +274,8 @@ namespace SurvivalNeeds.Systems
         //====================================================
 
         public bool PlaySmoking(
-            string itemId,
-            Action onFinished = null)
+    string itemId,
+    Action onFinished = null)
         {
             if (isPlaying)
                 return false;

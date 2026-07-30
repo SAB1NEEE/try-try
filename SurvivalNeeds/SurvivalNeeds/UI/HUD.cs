@@ -12,14 +12,14 @@ namespace SurvivalNeeds.UI
 {
     public class HUD
     {
-        private const float CenterX = 0.925f;
-        private const float TopY = 0.052f;
-        private const float MoneyY = 0.091f;
-        private const float BottomY = 0.130f;
-        private const float CircleSpacing = 0.027f;
+        private const float HudCenterX = 0.855f;
+        private const float StatusY = 0.100f;
+        private const float MoneyY = 0.145f;
 
-        private const float OuterRadius = 15f;
-        private const float InnerRadius = 13f;
+        private const float CircleSpacing = 0.035f;
+
+        private const float OuterRadius = 18f;
+        private const float InnerRadius = 13.8f;
 
         private readonly CustomSprite healthIcon;
         private readonly CustomSprite armorIcon;
@@ -29,6 +29,7 @@ namespace SurvivalNeeds.UI
         private readonly CustomSprite foodIcon;
         private readonly CustomSprite waterIcon;
         private readonly CustomSprite moneyIcon;
+        private readonly CustomSprite bankIcon;
         private readonly CustomSprite fuelIcon;
 
         private readonly VehicleFuelSystem
@@ -37,59 +38,131 @@ namespace SurvivalNeeds.UI
         private readonly string shapeCacheFolder;
         private readonly string textCacheFolder;
 
-        private readonly Dictionary<string, CustomSprite> shapeSprites =
-            new Dictionary<string, CustomSprite>();
-        private readonly Dictionary<string, CustomSprite> textSprites =
-            new Dictionary<string, CustomSprite>();
-        private readonly Dictionary<string, SizeF> textSpriteSizes =
-            new Dictionary<string, SizeF>();
-        private readonly Dictionary<int, CustomSprite> speedometerSprites =
-            new Dictionary<int, CustomSprite>();
+        private readonly Dictionary<string, CustomSprite>
+            shapeSprites =
+                new Dictionary<string, CustomSprite>();
+
+        private readonly Dictionary<string, CustomSprite>
+            textSprites =
+                new Dictionary<string, CustomSprite>();
+
+        private readonly Dictionary<string, SizeF>
+            textSpriteSizes =
+                new Dictionary<string, SizeF>();
+
+        private readonly Dictionary<int, CustomSprite>
+            speedometerSprites =
+                new Dictionary<int, CustomSprite>();
 
         public HUD(
             VehicleFuelSystem vehicleFuelSystem)
         {
             this.vehicleFuelSystem =
                 vehicleFuelSystem;
-            string iconFolder = GetIconFolder();
 
-            shapeCacheFolder = Path.Combine(
-                iconFolder,
-                "_hud_shape_cache"
-            );
+            string iconFolder =
+                GetIconFolder();
 
-            textCacheFolder = Path.Combine(
-                iconFolder,
-                "_hud_text_cache"
-            );
+            shapeCacheFolder =
+                Path.Combine(
+                    iconFolder,
+                    "_hud_shape_cache"
+                );
+
+            textCacheFolder =
+                Path.Combine(
+                    iconFolder,
+                    "_hud_text_cache"
+                );
 
             try
             {
-                Directory.CreateDirectory(shapeCacheFolder);
-                Directory.CreateDirectory(textCacheFolder);
+                Directory.CreateDirectory(
+                    shapeCacheFolder
+                );
+
+                Directory.CreateDirectory(
+                    textCacheFolder
+                );
             }
             catch
             {
             }
 
-            healthIcon = LoadIcon(iconFolder, "health.png");
-            armorIcon = LoadIcon(iconFolder, "armor.png");
-            staminaIcon = LoadIcon(iconFolder, "stamina.png");
-            stressIcon = LoadIcon(iconFolder, "stress.png");
-            breathIcon = LoadIcon(iconFolder, "breath.png");
-            foodIcon = LoadIcon(iconFolder, "food.png");
-            waterIcon = LoadIcon(iconFolder, "thirst.png");
-            moneyIcon = LoadIcon(iconFolder, "money.png");
-            fuelIcon = LoadIcon(iconFolder, "fuel.png");
+            healthIcon =
+                LoadIcon(
+                    iconFolder,
+                    "health.png"
+                );
+
+            armorIcon =
+                LoadIcon(
+                    iconFolder,
+                    "armor.png"
+                );
+
+            staminaIcon =
+                LoadIcon(
+                    iconFolder,
+                    "stamina.png"
+                );
+
+            stressIcon =
+                LoadIcon(
+                    iconFolder,
+                    "stress.png"
+                );
+
+            breathIcon =
+                LoadIcon(
+                    iconFolder,
+                    "breath.png"
+                );
+
+            foodIcon =
+                LoadIcon(
+                    iconFolder,
+                    "food.png"
+                );
+
+            waterIcon =
+                LoadIcon(
+                    iconFolder,
+                    "thirst.png"
+                );
+
+            moneyIcon =
+                LoadIcon(
+                    iconFolder,
+                    "money.png"
+                );
+
+            bankIcon =
+                LoadIcon(
+                    iconFolder,
+                    "bank.png"
+                );
+
+            fuelIcon =
+                LoadIcon(
+                    iconFolder,
+                    "fuel.png"
+                );
         }
+
+        //====================================================
+        // DRAW HUD
+        //====================================================
 
         public void Draw(
             float hunger,
             float thirst,
             float stress,
-            int cash)
+            int cash,
+            int bankBalance)
         {
-            Ped player = Game.Player.Character;
+            Ped player =
+                Game.Player.Character;
 
             if (player == null ||
                 !player.Exists())
@@ -97,42 +170,33 @@ namespace SurvivalNeeds.UI
                 return;
             }
 
-            float health = GetHealthPercent(player);
-            float armor = Clamp(player.Armor);
-            float stamina = GetStaminaPercent();
+            float health =
+                GetHealthPercent(
+                    player
+                );
 
-            hunger = Clamp(hunger);
-            thirst = Clamp(thirst);
-            stress = Clamp(stress);
+            float armor =
+                Clamp(
+                    player.Armor
+                );
 
-            DrawStatusCircle(
-                CenterX - CircleSpacing,
-                TopY,
-                "HP",
-                health,
-                Color.FromArgb(220, 55, 65),
-                healthIcon
-            );
+            float stamina =
+                GetStaminaPercent();
 
-            DrawStatusCircle(
-                CenterX,
-                TopY,
-                "AR",
-                armor,
-                Color.FromArgb(50, 95, 185),
-                armorIcon
-            );
+            hunger =
+                Clamp(
+                    hunger
+                );
 
-            DrawStatusCircle(
-                CenterX + CircleSpacing,
-                TopY,
-                "ST",
-                stamina,
-                Color.FromArgb(225, 205, 45),
-                staminaIcon
-            );
+            thirst =
+                Clamp(
+                    thirst
+                );
 
-            DrawMoneyPanel(cash);
+            stress =
+                Clamp(
+                    stress
+                );
 
             bool underwater =
                 Function.Call<bool>(
@@ -141,46 +205,131 @@ namespace SurvivalNeeds.UI
                 );
 
             float breath =
-                underwater ? GetBreathPercent() : 100f;
+                underwater
+                    ? GetBreathPercent()
+                    : 100f;
+
+            float firstX =
+                HudCenterX -
+                CircleSpacing * 3f;
 
             DrawStatusCircle(
-                CenterX - CircleSpacing * 1.5f,
-                BottomY,
-                "STR",
-                stress,
-                Color.FromArgb(105, 65, 190),
-                stressIcon
+                firstX,
+                StatusY,
+                "HP",
+                health,
+                Color.FromArgb(
+                    235,
+                    235,
+                    45,
+                    55
+                ),
+                healthIcon
             );
 
             DrawStatusCircle(
-                CenterX - CircleSpacing * 0.5f,
-                BottomY,
-                "FOOD",
-                hunger,
-                Color.FromArgb(220, 120, 45),
-                foodIcon
+                firstX +
+                CircleSpacing,
+                StatusY,
+                "AR",
+                armor,
+                Color.FromArgb(
+                    235,
+                    90,
+                    95,
+                    235
+                ),
+                armorIcon
             );
 
             DrawStatusCircle(
-                CenterX + CircleSpacing * 0.5f,
-                BottomY,
+                firstX +
+                CircleSpacing * 2f,
+                StatusY,
                 "H2O",
                 thirst,
-                Color.FromArgb(45, 150, 215),
+                Color.FromArgb(
+                    235,
+                    35,
+                    180,
+                    220
+                ),
                 waterIcon
             );
 
             DrawStatusCircle(
-                CenterX + CircleSpacing * 1.5f,
-                BottomY,
+                firstX +
+                CircleSpacing * 3f,
+                StatusY,
+                "FOOD",
+                hunger,
+                Color.FromArgb(
+                    235,
+                    235,
+                    145,
+                    20
+                ),
+                foodIcon
+            );
+
+            DrawStatusCircle(
+                firstX +
+                CircleSpacing * 4f,
+                StatusY,
+                "ST",
+                stamina,
+                Color.FromArgb(
+                    235,
+                    50,
+                    205,
+                    95
+                ),
+                staminaIcon
+            );
+
+            DrawStatusCircle(
+                firstX +
+                CircleSpacing * 5f,
+                StatusY,
+                "STR",
+                stress,
+                Color.FromArgb(
+                    235,
+                    215,
+                    205,
+                    20
+                ),
+                stressIcon
+            );
+
+            DrawStatusCircle(
+                firstX +
+                CircleSpacing * 6f,
+                StatusY,
                 "AIR",
                 breath,
-                Color.FromArgb(125, 135, 150),
+                Color.FromArgb(
+                    235,
+                    85,
+                    190,
+                    220
+                ),
                 breathIcon
             );
 
-            DrawVehicleHud(player);
+            DrawMoneyPanels(
+                cash,
+                bankBalance
+            );
+
+            DrawVehicleHud(
+                player
+            );
         }
+
+        //====================================================
+        // STATUS CIRCLE
+        //====================================================
 
         private void DrawStatusCircle(
             float x,
@@ -194,10 +343,28 @@ namespace SurvivalNeeds.UI
                 x,
                 y,
                 OuterRadius,
-                Color.FromArgb(205, 15, 15, 20)
+                Color.FromArgb(
+                    240,
+                    15,
+                    15,
+                    20
+                )
             );
 
-            Color displayColor = color;
+            DrawCircle(
+                x,
+                y,
+                InnerRadius,
+                Color.FromArgb(
+                    250,
+                    55,
+                    58,
+                    66
+                )
+            );
+
+            Color displayColor =
+                color;
 
             bool critical =
                 label == "STR"
@@ -207,15 +374,13 @@ namespace SurvivalNeeds.UI
             if (critical)
             {
                 displayColor =
-                    Color.FromArgb(220, 55, 55);
+                    Color.FromArgb(
+                        240,
+                        235,
+                        55,
+                        55
+                    );
             }
-
-            DrawCircle(
-                x,
-                y,
-                InnerRadius,
-                Color.FromArgb(225, 28, 28, 34)
-            );
 
             DrawCircleFill(
                 x,
@@ -223,10 +388,22 @@ namespace SurvivalNeeds.UI
                 InnerRadius,
                 value,
                 Color.FromArgb(
-                    235,
+                    245,
                     displayColor.R,
                     displayColor.G,
                     displayColor.B
+                )
+            );
+
+            DrawCircle(
+                x,
+                y,
+                9.7f,
+                Color.FromArgb(
+                    255,
+                    248,
+                    248,
+                    248
                 )
             );
 
@@ -236,77 +413,220 @@ namespace SurvivalNeeds.UI
                     icon,
                     x,
                     y,
-                    15f
+                    13.5f
                 );
             }
             else
             {
-                DrawStaticText(
+                DrawCenteredStaticText(
                     label,
                     x,
-                    y - 0.008f,
-                    0.16f,
-                    Color.White
+                    y,
+                    0.15f,
+                    Color.FromArgb(
+                        255,
+                        35,
+                        35,
+                        40
+                    )
                 );
             }
         }
 
-        private void DrawMoneyPanel(int cash)
-        {
-            const float panelWidth = 0.108f;
-            const float panelHeight = 0.028f;
+        //====================================================
+        // MONEY PANELS
+        //====================================================
 
-            DrawRoundedRectangle(
-                CenterX,
+        private void DrawMoneyPanels(
+            int cash,
+            int bankBalance)
+        {
+            const float panelWidth =
+                0.096f;
+
+            const float panelHeight =
+                0.032f;
+
+            const float panelSpacing =
+                0.106f;
+
+            float cashPanelX =
+                HudCenterX -
+                panelSpacing / 2f;
+
+            float bankPanelX =
+                HudCenterX +
+                panelSpacing / 2f;
+
+            DrawMoneyBox(
+                cashPanelX,
                 MoneyY,
                 panelWidth,
                 panelHeight,
-                Color.FromArgb(220, 100, 102, 112)
+                cash,
+                Color.FromArgb(
+                    245,
+                    65,
+                    205,
+                    45
+                ),
+                moneyIcon,
+                "$"
+            );
+
+            DrawMoneyBox(
+                bankPanelX,
+                MoneyY,
+                panelWidth,
+                panelHeight,
+                bankBalance,
+                Color.FromArgb(
+                    245,
+                    40,
+                    145,
+                    220
+                ),
+                bankIcon,
+                "B"
+            );
+        }
+
+        private void DrawMoneyBox(
+            float centerX,
+            float centerY,
+            float width,
+            float height,
+            int amount,
+            Color iconColor,
+            CustomSprite icon,
+            string fallbackText)
+        {
+            DrawRoundedRectangle(
+                centerX,
+                centerY,
+                width,
+                height,
+                Color.FromArgb(
+                    240,
+                    60,
+                    63,
+                    72
+                )
             );
 
             float iconX =
-                CenterX - panelWidth / 2f + 0.015f;
+                centerX -
+                width / 2f +
+                0.015f;
 
             DrawCircle(
                 iconX,
-                MoneyY,
-                12f,
-                Color.FromArgb(240, 45, 195, 70)
+                centerY,
+                12.5f,
+                iconColor
             );
 
-            if (moneyIcon != null)
+            DrawCircle(
+                iconX,
+                centerY,
+                8.5f,
+                Color.FromArgb(
+                    255,
+                    245,
+                    245,
+                    245
+                )
+            );
+
+            if (icon != null)
             {
                 DrawIcon(
-                    moneyIcon,
+                    icon,
                     iconX,
-                    MoneyY,
-                    13f
+                    centerY,
+                    12f
                 );
             }
             else
             {
-                DrawStaticText(
-                    "$",
+                DrawCenteredStaticText(
+                    fallbackText,
                     iconX,
-                    MoneyY - 0.008f,
-                    0.24f,
-                    Color.White
+                    centerY,
+                    0.17f,
+                    Color.FromArgb(
+                        255,
+                        40,
+                        40,
+                        45
+                    )
                 );
             }
 
             DrawDynamicText(
-                cash.ToString(
-                    "N0",
-                    CultureInfo.InvariantCulture
+                FormatCompactMoney(
+                    amount
                 ),
-                CenterX + 0.010f,
-                MoneyY - 0.010f,
-                0.29f,
+                centerX + 0.014f,
+                centerY - 0.010f,
+                0.31f,
                 Color.White
             );
         }
 
-        private void DrawVehicleHud(Ped player)
+        private string FormatCompactMoney(
+            int amount)
+        {
+            float absoluteAmount =
+                Math.Abs(
+                    (float)amount
+                );
+
+            string sign =
+                amount < 0
+                    ? "-"
+                    : string.Empty;
+
+            if (absoluteAmount >= 1000000f)
+            {
+                return sign +
+                    (
+                        absoluteAmount /
+                        1000000f
+                    )
+                    .ToString(
+                        "0.#",
+                        CultureInfo.InvariantCulture
+                    ) +
+                    "M";
+            }
+
+            if (absoluteAmount >= 1000f)
+            {
+                return sign +
+                    (
+                        absoluteAmount /
+                        1000f
+                    )
+                    .ToString(
+                        "0.#",
+                        CultureInfo.InvariantCulture
+                    ) +
+                    "K";
+            }
+
+            return amount.ToString(
+                "N0",
+                CultureInfo.InvariantCulture
+            );
+        }
+
+        //====================================================
+        // VEHICLE HUD
+        //====================================================
+
+        private void DrawVehicleHud(
+            Ped player)
         {
             bool isInVehicle =
                 Function.Call<bool>(
@@ -333,8 +653,9 @@ namespace SurvivalNeeds.UI
             }
 
             Vehicle vehicle =
-                Entity.FromHandle(vehicleHandle)
-                as Vehicle;
+                Entity.FromHandle(
+                    vehicleHandle
+                ) as Vehicle;
 
             if (vehicle == null ||
                 !vehicle.Exists())
@@ -342,15 +663,22 @@ namespace SurvivalNeeds.UI
                 return;
             }
 
-            const float speedometerX = 0.500f;
-            const float speedometerY = 0.875f;
+            const float speedometerX =
+                0.500f;
+
+            const float speedometerY =
+                0.875f;
 
             float speedMph =
-                Math.Abs(vehicle.Speed) *
+                Math.Abs(
+                    vehicle.Speed
+                ) *
                 2.23693629f;
 
             int displayedSpeed =
-                (int)Math.Round(speedMph);
+                (int)Math.Round(
+                    speedMph
+                );
 
             DrawSpeedometer(
                 speedometerX,
@@ -359,28 +687,39 @@ namespace SurvivalNeeds.UI
             );
 
             float fuel =
-                GetVehicleFuel(vehicle);
+                GetVehicleFuel(
+                    vehicle
+                );
 
-            float fuelX =
-                speedometerX - 0.065f;
+            const float fuelX =
+                0.435f;
 
-            float fuelY =
-                speedometerY + 0.072f;
+            const float fuelY =
+                0.947f;
 
             DrawStatusCircle(
                 fuelX,
                 fuelY,
                 "GAS",
                 fuel,
-                Color.FromArgb(225, 135, 35),
+                Color.FromArgb(
+                    235,
+                    235,
+                    145,
+                    20
+                ),
                 fuelIcon
             );
         }
 
+        //====================================================
+        // SPEEDOMETER
+        //====================================================
+
         private void DrawSpeedometer(
-    float centerX,
-    float centerY,
-    int speed)
+            float centerX,
+            float centerY,
+            int speed)
         {
             if (speed < 0)
             {
@@ -420,15 +759,22 @@ namespace SurvivalNeeds.UI
                     sprite =
                         new CustomSprite(
                             texturePath,
-                            new SizeF(94f, 94f),
-                            new PointF(0f, 0f),
+                            new SizeF(
+                                94f,
+                                94f
+                            ),
+                            new PointF(
+                                0f,
+                                0f
+                            ),
                             Color.White,
                             0f,
                             true
                         );
 
-                    speedometerSprites[speed] =
-                        sprite;
+                    speedometerSprites[
+                        speed
+                    ] = sprite;
                 }
                 catch
                 {
@@ -455,26 +801,31 @@ namespace SurvivalNeeds.UI
         }
 
         private void CreateSpeedometerTexture(
-    string texturePath,
-    int speed)
+            string texturePath,
+            int speed)
         {
-            if (File.Exists(texturePath))
+            if (File.Exists(
+                texturePath))
             {
                 return;
             }
 
-            const int textureSize = 256;
+            const int textureSize =
+                256;
 
             using (Bitmap bitmap =
                 new Bitmap(
                     textureSize,
                     textureSize,
                     System.Drawing.Imaging
-                        .PixelFormat.Format32bppArgb
+                        .PixelFormat
+                        .Format32bppArgb
                 ))
             {
                 using (Graphics graphics =
-                    Graphics.FromImage(bitmap))
+                    Graphics.FromImage(
+                        bitmap
+                    ))
                 {
                     graphics.Clear(
                         Color.Transparent
@@ -482,21 +833,24 @@ namespace SurvivalNeeds.UI
 
                     graphics.SmoothingMode =
                         System.Drawing.Drawing2D
-                            .SmoothingMode.AntiAlias;
+                            .SmoothingMode
+                            .AntiAlias;
 
                     graphics.CompositingQuality =
                         System.Drawing.Drawing2D
-                            .CompositingQuality.HighQuality;
+                            .CompositingQuality
+                            .HighQuality;
 
                     graphics.InterpolationMode =
                         System.Drawing.Drawing2D
-                            .InterpolationMode.HighQualityBicubic;
+                            .InterpolationMode
+                            .HighQualityBicubic;
 
                     graphics.PixelOffsetMode =
                         System.Drawing.Drawing2D
-                            .PixelOffsetMode.HighQuality;
+                            .PixelOffsetMode
+                            .HighQuality;
 
-                    // Outer dark border.
                     using (SolidBrush outerBrush =
                         new SolidBrush(
                             Color.FromArgb(
@@ -516,7 +870,6 @@ namespace SurvivalNeeds.UI
                         );
                     }
 
-                    // Red ring.
                     using (SolidBrush redBrush =
                         new SolidBrush(
                             Color.FromArgb(
@@ -536,7 +889,6 @@ namespace SurvivalNeeds.UI
                         );
                     }
 
-                    // Black center.
                     using (SolidBrush centerBrush =
                         new SolidBrush(
                             Color.FromArgb(
@@ -626,6 +978,10 @@ namespace SurvivalNeeds.UI
             }
         }
 
+        //====================================================
+        // VEHICLE FUEL
+        //====================================================
+
         private float GetVehicleFuel(
             Vehicle vehicle)
         {
@@ -643,16 +999,24 @@ namespace SurvivalNeeds.UI
             );
         }
 
+        //====================================================
+        // ICON FOLDER
+        //====================================================
+
         private string GetIconFolder()
         {
             string baseFolder =
-                AppDomain.CurrentDomain.BaseDirectory.TrimEnd(
-                    Path.DirectorySeparatorChar,
-                    Path.AltDirectorySeparatorChar
-                );
+                AppDomain.CurrentDomain
+                    .BaseDirectory
+                    .TrimEnd(
+                        Path.DirectorySeparatorChar,
+                        Path.AltDirectorySeparatorChar
+                    );
 
             DirectoryInfo baseDirectory =
-                new DirectoryInfo(baseFolder);
+                new DirectoryInfo(
+                    baseFolder
+                );
 
             string scriptsFolder;
 
@@ -660,14 +1024,16 @@ namespace SurvivalNeeds.UI
                 "scripts",
                 StringComparison.OrdinalIgnoreCase))
             {
-                scriptsFolder = baseDirectory.FullName;
+                scriptsFolder =
+                    baseDirectory.FullName;
             }
             else
             {
-                scriptsFolder = Path.Combine(
-                    baseDirectory.FullName,
-                    "scripts"
-                );
+                scriptsFolder =
+                    Path.Combine(
+                        baseDirectory.FullName,
+                        "scripts"
+                    );
             }
 
             return Path.Combine(
@@ -684,17 +1050,27 @@ namespace SurvivalNeeds.UI
             try
             {
                 string fullPath =
-                    Path.Combine(iconFolder, filename);
+                    Path.Combine(
+                        iconFolder,
+                        filename
+                    );
 
-                if (!File.Exists(fullPath))
+                if (!File.Exists(
+                    fullPath))
                 {
                     return null;
                 }
 
                 return new CustomSprite(
                     fullPath,
-                    new SizeF(24f, 24f),
-                    new PointF(0f, 0f),
+                    new SizeF(
+                        24f,
+                        24f
+                    ),
+                    new PointF(
+                        0f,
+                        0f
+                    ),
                     Color.White,
                     0f,
                     true
@@ -724,10 +1100,18 @@ namespace SurvivalNeeds.UI
                     size
                 );
 
+            icon.Color =
+                Color.White;
+
             icon.Draw();
         }
 
-        private float GetHealthPercent(Ped player)
+        //====================================================
+        // PLAYER VALUES
+        //====================================================
+
+        private float GetHealthPercent(
+            Ped player)
         {
             if (player.MaxHealth <= 0)
             {
@@ -749,12 +1133,15 @@ namespace SurvivalNeeds.UI
                     Game.Player.Handle
                 );
 
-            return Clamp(stamina);
+            return Clamp(
+                stamina
+            );
         }
 
         private float GetBreathPercent()
         {
-            const float maximumBreathSeconds = 10f;
+            const float maximumBreathSeconds =
+                10f;
 
             float remainingSeconds =
                 Function.Call<float>(
@@ -769,6 +1156,10 @@ namespace SurvivalNeeds.UI
             );
         }
 
+        //====================================================
+        // ROUNDED RECTANGLE
+        //====================================================
+
         private void DrawRoundedRectangle(
             float centerX,
             float centerY,
@@ -777,90 +1168,45 @@ namespace SurvivalNeeds.UI
             Color color)
         {
             float radiusPixels =
-                height * Screen.Height / 2f;
+                height *
+                Screen.Height /
+                2f;
 
             float radiusX =
-                radiusPixels / Screen.Width;
+                radiusPixels /
+                Screen.Width;
 
             DrawRectangle(
                 centerX,
                 centerY,
-                width - radiusX * 2f,
+                width -
+                radiusX * 2f,
                 height,
                 color
             );
 
             DrawCircle(
-                centerX - width / 2f + radiusX,
+                centerX -
+                width / 2f +
+                radiusX,
                 centerY,
                 radiusPixels,
                 color
             );
 
             DrawCircle(
-                centerX + width / 2f - radiusX,
+                centerX +
+                width / 2f -
+                radiusX,
                 centerY,
                 radiusPixels,
                 color
             );
         }
 
-        private void DrawPlainCircle(
-            float centerX,
-            float centerY,
-            float radiusPixels,
-            Color color)
-        {
-            float radiusX =
-                radiusPixels / Screen.Width;
-
-            float radiusY =
-                radiusPixels / Screen.Height;
-
-            // Smooth enough without exceeding GTA's HUD draw limit.
-            const int slices = 64;
-
-            float sliceHeight =
-                radiusY * 2f / slices;
-
-            for (int i = 0;
-                i < slices;
-                i++)
-            {
-                float t =
-                    -1.0f +
-                    ((i + 0.5f) / slices) *
-                    2.0f;
-
-                float inside =
-                    1.0f - t * t;
-
-                if (inside <= 0f)
-                {
-                    continue;
-                }
-
-                float halfWidth =
-                    (float)Math.Sqrt(inside);
-
-                float y =
-                    centerY +
-                    t * radiusY;
-
-                float width =
-                    radiusX *
-                    2f *
-                    halfWidth;
-
-                DrawRectangle(
-                    centerX,
-                    y,
-                    width,
-                    sliceHeight + 0.0001f,
-                    color
-                );
-            }
-        }
+        //====================================================
+        // CIRCLE DRAWING
+        //====================================================
 
         private void DrawCircle(
             float centerX,
@@ -886,7 +1232,9 @@ namespace SurvivalNeeds.UI
         {
             int fillLevel =
                 (int)Math.Round(
-                    Clamp(percentage)
+                    Clamp(
+                        percentage
+                    )
                 );
 
             if (fillLevel <= 0)
@@ -913,7 +1261,10 @@ namespace SurvivalNeeds.UI
             fillLevel =
                 Math.Max(
                     0,
-                    Math.Min(100, fillLevel)
+                    Math.Min(
+                        100,
+                        fillLevel
+                    )
                 );
 
             string key =
@@ -941,7 +1292,9 @@ namespace SurvivalNeeds.UI
                     string texturePath =
                         Path.Combine(
                             shapeCacheFolder,
-                            "circle_" + key + ".png"
+                            "circle_" +
+                            key +
+                            ".png"
                         );
 
                     CreateCircleTexture(
@@ -957,21 +1310,28 @@ namespace SurvivalNeeds.UI
                                 radiusPixels * 2f,
                                 radiusPixels * 2f
                             ),
-                            new PointF(0f, 0f),
+                            new PointF(
+                                0f,
+                                0f
+                            ),
                             Color.White,
                             0f,
                             true
                         );
 
-                    shapeSprites[key] = sprite;
+                    shapeSprites[
+                        key
+                    ] = sprite;
                 }
                 catch
                 {
                     DrawRectangle(
                         centerX,
                         centerY,
-                        radiusPixels * 2f / Screen.Width,
-                        radiusPixels * 2f / Screen.Height,
+                        radiusPixels * 2f /
+                            Screen.Width,
+                        radiusPixels * 2f /
+                            Screen.Height,
                         color
                     );
 
@@ -991,7 +1351,9 @@ namespace SurvivalNeeds.UI
                     radiusPixels * 2f
                 );
 
-            sprite.Color = Color.White;
+            sprite.Color =
+                Color.White;
+
             sprite.Draw();
         }
 
@@ -1000,37 +1362,47 @@ namespace SurvivalNeeds.UI
             int fillLevel,
             Color color)
         {
-            if (File.Exists(texturePath))
+            if (File.Exists(
+                texturePath))
             {
                 return;
             }
 
-            const int textureSize = 128;
+            const int textureSize =
+                128;
 
             using (Bitmap bitmap =
                 new Bitmap(
                     textureSize,
                     textureSize,
                     System.Drawing.Imaging
-                        .PixelFormat.Format32bppArgb
+                        .PixelFormat
+                        .Format32bppArgb
                 ))
             {
                 using (Graphics graphics =
-                    Graphics.FromImage(bitmap))
+                    Graphics.FromImage(
+                        bitmap
+                    ))
                 {
-                    graphics.Clear(Color.Transparent);
+                    graphics.Clear(
+                        Color.Transparent
+                    );
 
                     graphics.SmoothingMode =
                         System.Drawing.Drawing2D
-                            .SmoothingMode.AntiAlias;
+                            .SmoothingMode
+                            .AntiAlias;
 
                     graphics.CompositingQuality =
                         System.Drawing.Drawing2D
-                            .CompositingQuality.HighQuality;
+                            .CompositingQuality
+                            .HighQuality;
 
                     graphics.InterpolationMode =
                         System.Drawing.Drawing2D
-                            .InterpolationMode.HighQualityBicubic;
+                            .InterpolationMode
+                            .HighQualityBicubic;
 
                     float fillHeight =
                         textureSize *
@@ -1040,14 +1412,17 @@ namespace SurvivalNeeds.UI
                     graphics.SetClip(
                         new RectangleF(
                             0f,
-                            textureSize - fillHeight,
+                            textureSize -
+                            fillHeight,
                             textureSize,
                             fillHeight
                         )
                     );
 
                     using (SolidBrush brush =
-                        new SolidBrush(color))
+                        new SolidBrush(
+                            color
+                        ))
                     {
                         graphics.FillEllipse(
                             brush,
@@ -1069,6 +1444,10 @@ namespace SurvivalNeeds.UI
             }
         }
 
+        //====================================================
+        // RECTANGLE
+        //====================================================
+
         private void DrawRectangle(
             float centerX,
             float centerY,
@@ -1089,6 +1468,10 @@ namespace SurvivalNeeds.UI
             );
         }
 
+        //====================================================
+        // DYNAMIC TEXT
+        //====================================================
+
         private void DrawDynamicText(
             string text,
             float x,
@@ -1096,7 +1479,8 @@ namespace SurvivalNeeds.UI
             float scale,
             Color color)
         {
-            if (string.IsNullOrEmpty(text))
+            if (string.IsNullOrEmpty(
+                text))
             {
                 return;
             }
@@ -1115,24 +1499,31 @@ namespace SurvivalNeeds.UI
             element.Alignment =
                 Alignment.Center;
 
-            element.Outline = true;
+            element.Outline =
+                true;
+
             element.Draw();
         }
 
-        private void DrawStaticText(
+        //====================================================
+        // STATIC TEXT
+        //====================================================
+
+        private void DrawCenteredStaticText(
             string text,
             float x,
             float y,
             float scale,
             Color color)
         {
-            if (string.IsNullOrEmpty(text))
+            if (string.IsNullOrEmpty(
+                text))
             {
                 return;
             }
 
             string textureKey =
-                "hud_v2|" +
+                "hud_large|" +
                 text +
                 "|" +
                 scale.ToString(
@@ -1160,7 +1551,8 @@ namespace SurvivalNeeds.UI
                             textCacheFolder,
                             GetSafeTextFileName(
                                 textureKey
-                            ) + ".png"
+                            ) +
+                            ".png"
                         );
 
                     displaySize =
@@ -1175,105 +1567,22 @@ namespace SurvivalNeeds.UI
                         new CustomSprite(
                             texturePath,
                             displaySize,
-                            new PointF(0f, 0f),
+                            new PointF(
+                                0f,
+                                0f
+                            ),
                             Color.White,
                             0f,
                             false
                         );
 
-                    textSprites[textureKey] = sprite;
-                    textSpriteSizes[textureKey] = displaySize;
-                }
-                catch
-                {
-                    return;
-                }
-            }
-            else if (!textSpriteSizes.TryGetValue(
-                textureKey,
-                out displaySize))
-            {
-                return;
-            }
+                    textSprites[
+                        textureKey
+                    ] = sprite;
 
-            sprite.Position =
-                new PointF(
-                    x * 1280f - displaySize.Width / 2f,
-                    y * 720f
-                );
-
-            sprite.Size = displaySize;
-            sprite.Color = Color.White;
-            sprite.Draw();
-        }
-
-        private void DrawCenteredStaticText(
-    string text,
-    float x,
-    float y,
-    float scale,
-    Color color)
-        {
-            if (string.IsNullOrEmpty(text))
-            {
-                return;
-            }
-
-            string textureKey =
-                "hud_v2|" +
-                text +
-                "|" +
-                scale.ToString(
-                    "R",
-                    CultureInfo.InvariantCulture
-                ) +
-                "|" +
-                color.ToArgb();
-
-            CustomSprite sprite;
-            SizeF displaySize;
-
-            if (!textSprites.TryGetValue(
-                textureKey,
-                out sprite))
-            {
-                try
-                {
-                    Directory.CreateDirectory(
-                        textCacheFolder
-                    );
-
-                    string texturePath =
-                        Path.Combine(
-                            textCacheFolder,
-                            GetSafeTextFileName(
-                                textureKey
-                            ) + ".png"
-                        );
-
-                    displaySize =
-                        CreateHudTextTexture(
-                            texturePath,
-                            text,
-                            scale,
-                            color
-                        );
-
-                    sprite =
-                        new CustomSprite(
-                            texturePath,
-                            displaySize,
-                            new PointF(0f, 0f),
-                            Color.White,
-                            0f,
-                            false
-                        );
-
-                    textSprites[textureKey] =
-                        sprite;
-
-                    textSpriteSizes[textureKey] =
-                        displaySize;
+                    textSpriteSizes[
+                        textureKey
+                    ] = displaySize;
                 }
                 catch
                 {
@@ -1290,10 +1599,10 @@ namespace SurvivalNeeds.UI
             sprite.Position =
                 new PointF(
                     x * 1280f -
-                        displaySize.Width / 2f,
+                    displaySize.Width / 2f,
 
                     y * 720f -
-                        displaySize.Height / 2f
+                    displaySize.Height / 2f
                 );
 
             sprite.Size =
@@ -1311,16 +1620,23 @@ namespace SurvivalNeeds.UI
             float scale,
             Color color)
         {
-            const float resolutionScale = 2f;
+            const float resolutionScale =
+                2f;
 
-            if (File.Exists(texturePath))
+            if (File.Exists(
+                texturePath))
             {
                 using (Image image =
-                    Image.FromFile(texturePath))
+                    Image.FromFile(
+                        texturePath
+                    ))
                 {
                     return new SizeF(
-                        image.Width / resolutionScale,
-                        image.Height / resolutionScale
+                        image.Width /
+                        resolutionScale,
+
+                        image.Height /
+                        resolutionScale
                     );
                 }
             }
@@ -1343,7 +1659,10 @@ namespace SurvivalNeeds.UI
                 SizeF measured;
 
                 using (Bitmap measurement =
-                    new Bitmap(1, 1))
+                    new Bitmap(
+                        1,
+                        1
+                    ))
                 {
                     using (Graphics graphics =
                         Graphics.FromImage(
@@ -1363,7 +1682,8 @@ namespace SurvivalNeeds.UI
                         4,
                         (int)Math.Ceiling(
                             measured.Width
-                        ) + 12
+                        ) +
+                        12
                     );
 
                 int height =
@@ -1371,7 +1691,8 @@ namespace SurvivalNeeds.UI
                         4,
                         (int)Math.Ceiling(
                             measured.Height
-                        ) + 12
+                        ) +
+                        12
                     );
 
                 using (Bitmap bitmap =
@@ -1379,21 +1700,28 @@ namespace SurvivalNeeds.UI
                         width,
                         height,
                         System.Drawing.Imaging
-                            .PixelFormat.Format32bppArgb
+                            .PixelFormat
+                            .Format32bppArgb
                     ))
                 {
                     using (Graphics graphics =
-                        Graphics.FromImage(bitmap))
+                        Graphics.FromImage(
+                            bitmap
+                        ))
                     {
-                        graphics.Clear(Color.Transparent);
+                        graphics.Clear(
+                            Color.Transparent
+                        );
 
                         graphics.SmoothingMode =
                             System.Drawing.Drawing2D
-                                .SmoothingMode.AntiAlias;
+                                .SmoothingMode
+                                .AntiAlias;
 
                         graphics.TextRenderingHint =
                             System.Drawing.Text
-                                .TextRenderingHint.AntiAliasGridFit;
+                                .TextRenderingHint
+                                .AntiAliasGridFit;
 
                         using (SolidBrush outline =
                             new SolidBrush(
@@ -1431,7 +1759,9 @@ namespace SurvivalNeeds.UI
                         }
 
                         using (SolidBrush brush =
-                            new SolidBrush(color))
+                            new SolidBrush(
+                                color
+                            ))
                         {
                             graphics.DrawString(
                                 text,
@@ -1451,8 +1781,11 @@ namespace SurvivalNeeds.UI
                 }
 
                 return new SizeF(
-                    width / resolutionScale,
-                    height / resolutionScale
+                    width /
+                    resolutionScale,
+
+                    height /
+                    resolutionScale
                 );
             }
         }
@@ -1460,22 +1793,40 @@ namespace SurvivalNeeds.UI
         private string GetSafeTextFileName(
             string value)
         {
-            using (System.Security.Cryptography.SHA1 sha1 =
-                System.Security.Cryptography.SHA1.Create())
+            using (
+                System.Security.Cryptography.SHA1
+                sha1 =
+                    System.Security.Cryptography
+                        .SHA1.Create())
             {
                 byte[] bytes =
-                    System.Text.Encoding.UTF8.GetBytes(value);
+                    System.Text.Encoding.UTF8
+                        .GetBytes(
+                            value
+                        );
 
                 byte[] hash =
-                    sha1.ComputeHash(bytes);
+                    sha1.ComputeHash(
+                        bytes
+                    );
 
                 return BitConverter
-                    .ToString(hash)
-                    .Replace("-", string.Empty);
+                    .ToString(
+                        hash
+                    )
+                    .Replace(
+                        "-",
+                        string.Empty
+                    );
             }
         }
 
-        private float Clamp(float value)
+        //====================================================
+        // CLAMP
+        //====================================================
+
+        private float Clamp(
+            float value)
         {
             if (value < 0f)
             {

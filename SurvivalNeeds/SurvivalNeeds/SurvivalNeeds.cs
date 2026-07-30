@@ -401,7 +401,8 @@ namespace SurvivalNeeds
                 hunger.Value,
                 thirst.Value,
                 stress.Value,
-                money.Cash
+                money.Cash,
+                bankAccount.Balance
             );
         }
 
