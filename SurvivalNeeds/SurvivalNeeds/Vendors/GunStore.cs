@@ -11,7 +11,8 @@ namespace SurvivalNeeds.Vendors
         SubmachineGuns,
         Shotguns,
         Rifles,
-        Melee
+        Melee,
+        Equipment
     }
 
     public class GunStoreItem
@@ -252,7 +253,27 @@ namespace SurvivalNeeds.Vendors
                     true
                 )
             );
+            //================================================
+            // EQUIPMENT
+            //================================================
+
+            items.Add(
+                new GunStoreItem(
+                    "Jerry Can",
+                    "A full portable fuel container for refueling vehicles.",
+                    GunStoreCategory.Equipment,
+                    WeaponHash.PetrolCan,
+                    150,
+                    4500,
+                    0,
+                    0,
+                    2.50f,
+                    "weapon_petrolcan.png",
+                    true
+                )
+            );
         }
+
 
         //====================================================
         // GET ITEMS BY CATEGORY

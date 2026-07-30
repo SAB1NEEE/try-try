@@ -27,8 +27,11 @@ namespace SurvivalNeeds.VehicleStorage
                 StringComparer.OrdinalIgnoreCase
             );
 
-        private readonly string vehicleSaveFolder;
-        private readonly string claimedVehiclesSavePath;
+        private readonly string survivalNeedsFolder;
+
+        private string vehicleSaveFolder;
+        private string claimedVehiclesSavePath;
+        private string currentProfileId;
 
         private int nextClaimNumber = 1;
 
@@ -46,19 +49,96 @@ namespace SurvivalNeeds.VehicleStorage
 
         public VehicleInventoryManager()
         {
-            string survivalNeedsFolder =
+            survivalNeedsFolder =
                 GetSurvivalNeedsFolder();
+
+            SetProfile(
+                "DEFAULT"
+            );
+        }
+
+        //====================================================
+        // SET CHARACTER PROFILE
+        //====================================================
+
+        public void SetProfile(
+            string profileId)
+        {
+            if (string.IsNullOrWhiteSpace(
+                profileId))
+            {
+                profileId = "DEFAULT";
+            }
+
+            profileId =
+                MakeSafeFileName(
+                    profileId
+                );
+
+            if (string.Equals(
+                currentProfileId,
+                profileId,
+                StringComparison.OrdinalIgnoreCase))
+            {
+                return;
+            }
+
+            /*
+             * Save the previous character's vehicle data
+             * before changing profiles.
+             */
+            if (!string.IsNullOrWhiteSpace(
+                currentProfileId))
+            {
+                SaveAll();
+            }
+
+            RemoveActiveVehicleBlip();
+
+            /*
+             * Remove the old character's active personal
+             * vehicle from the world.
+             */
+            if (activePersonalVehicle != null &&
+                activePersonalVehicle.Exists())
+            {
+                activePersonalVehicle.IsPersistent =
+                    false;
+
+                activePersonalVehicle.Delete();
+            }
+
+            activePersonalVehicle =
+                null;
+
+            activePersonalVehicleClaimId =
+                null;
+
+            vehicles.Clear();
+
+            physicalVehicleToClaimId.Clear();
+
+            claimedVehicles.Clear();
+
+            nextClaimNumber =
+                1;
+
+            currentProfileId =
+                profileId;
 
             vehicleSaveFolder =
                 Path.Combine(
                     survivalNeedsFolder,
-                    "vehicles"
+                    "vehicles",
+                    currentProfileId
                 );
 
             claimedVehiclesSavePath =
                 Path.Combine(
                     survivalNeedsFolder,
-                    "claimed_vehicles.ini"
+                    "claimed_vehicles_" +
+                    currentProfileId +
+                    ".ini"
                 );
 
             Directory.CreateDirectory(

@@ -13,7 +13,7 @@ namespace SurvivalNeeds.VehicleStorage
         public InventoryManager Inventory
         {
             get;
-            private set;
+            set;
         }
 
         public VehicleInventory(
@@ -24,9 +24,10 @@ namespace SurvivalNeeds.VehicleStorage
                 vehicleKey;
 
             Inventory =
-                new InventoryManager(
-                    slotCount
-                );
+    new InventoryManager(
+        slotCount,
+        30f
+    );
         }
     }
 }

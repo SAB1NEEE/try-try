@@ -55,7 +55,9 @@ namespace SurvivalNeeds.Vendors
             );
 
             vendors =
-                VendorDataBase.CreateVendors();
+            VendorDataBase.CreateVendors();
+
+            AddJerryCanToGasStations();
 
             CreateVendorBlips();
         }
@@ -452,6 +454,46 @@ namespace SurvivalNeeds.Vendors
                 name.Contains("LTD") ||
                 name.Contains("GAS") ||
                 name.Contains("FUEL");
+        }
+
+        private void AddJerryCanToGasStations()
+        {
+            if (vendors == null)
+                return;
+
+            foreach (Vendor vendor in vendors)
+            {
+                if (vendor == null ||
+                    !IsGasStationVendor(vendor))
+                {
+                    continue;
+                }
+
+                bool alreadyAdded = false;
+
+                foreach (VendorItem vendorItem in vendor.Items)
+                {
+                    if (vendorItem != null &&
+                        vendorItem.ItemId ==
+                            "weapon_petrolcan")
+                    {
+                        alreadyAdded = true;
+                        break;
+                    }
+                }
+
+                if (alreadyAdded)
+                    continue;
+
+                vendor.Items.Add(
+                    new VendorItem(
+                        "weapon_petrolcan",
+                        VendorCategory.Vehicle,
+                        120,
+                        3
+                    )
+                );
+            }
         }
 
         private void SetBlipName(

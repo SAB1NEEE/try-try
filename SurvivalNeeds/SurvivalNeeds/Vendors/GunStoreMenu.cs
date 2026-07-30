@@ -1280,7 +1280,7 @@ public class GunStoreMenu
             item.Weight;
 
         if (weightAfterPurchase >
-            InventoryManager.MaximumWeight)
+            inventory.MaximumWeight)
         {
             Notification.Show(
                 "~r~Cannot buy " +
@@ -1289,8 +1289,7 @@ public class GunStoreMenu
                 weightAfterPurchase
                     .ToString("0.00") +
                 " / " +
-                InventoryManager.MaximumWeight
-                    .ToString("0.00") +
+                inventory.MaximumWeight.ToString("0.0") +
                 " KG."
             );
 
@@ -1555,6 +1554,9 @@ private void PlayPurchaseSound()
 
             case WeaponHash.Crowbar:
                 return "weapon_crowbar";
+
+            case WeaponHash.PetrolCan:
+                return "weapon_petrolcan";
 
             default:
                 return null;

@@ -4,13 +4,22 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 
-namespace SurvivalNeeds.Managers
+namespace SurvivalNeeds.Apartments
 {
-    public class SaveManager
+    public class ApartmentStorageManager
     {
-        private readonly string saveDirectory;
+        private const int StorageSlots = 30;
+        private const float StorageMaximumWeight = 50f;
 
-        public SaveManager()
+        private readonly string saveFolder;
+
+        private readonly Dictionary<string, InventoryManager>
+            storages =
+                new Dictionary<string, InventoryManager>(
+                    StringComparer.OrdinalIgnoreCase
+                );
+
+        public ApartmentStorageManager()
         {
             string baseFolder =
                 AppDomain.CurrentDomain
@@ -36,66 +45,98 @@ namespace SurvivalNeeds.Managers
                         "scripts"
                     );
 
-            saveDirectory =
+            saveFolder =
                 Path.Combine(
                     scriptsFolder,
-                    "SurvivalNeeds"
+                    "SurvivalNeeds",
+                    "apartments"
                 );
 
-            EnsureSaveDirectoryExists();
-        }
-
-        //====================================================
-        // GET INVENTORY SAVE PATH
-        //====================================================
-
-        private string GetInventorySavePath(
-            string profileId)
-        {
-            if (string.IsNullOrWhiteSpace(
-                profileId))
-            {
-                profileId =
-                    "DEFAULT";
-            }
-
-            foreach (
-                char invalidCharacter
-                in Path.GetInvalidFileNameChars())
-            {
-                profileId =
-                    profileId.Replace(
-                        invalidCharacter,
-                        '_'
-                    );
-            }
-
-            return Path.Combine(
-                saveDirectory,
-                "inventory_" +
-                profileId +
-                ".ini"
+            Directory.CreateDirectory(
+                saveFolder
             );
         }
 
         //====================================================
-        // SAVE PLAYER INVENTORY
+        // GET APARTMENT STORAGE
         //====================================================
 
-        public void SaveInventory(
-            string profileId,
-            InventoryManager inventory)
+        public InventoryManager GetStorage(
+            string apartmentId,
+            string profileId)
         {
-            if (inventory == null ||
-                inventory.Slots == null)
+            string storageKey =
+                CreateStorageKey(
+                    apartmentId,
+                    profileId
+                );
+
+            InventoryManager storage;
+
+            if (storages.TryGetValue(
+                storageKey,
+                out storage))
+            {
+                return storage;
+            }
+
+            storage =
+                new InventoryManager(
+                    StorageSlots,
+                    StorageMaximumWeight
+                );
+
+            LoadStorage(
+                apartmentId,
+                profileId,
+                storage
+            );
+
+            string capturedApartmentId =
+                apartmentId;
+
+            string capturedProfileId =
+                profileId;
+
+            storage.InventoryChanged +=
+                delegate
+                {
+                    SaveStorage(
+                        capturedApartmentId,
+                        capturedProfileId,
+                        storage
+                    );
+                };
+
+            storages[
+                storageKey
+            ] = storage;
+
+            return storage;
+        }
+
+        //====================================================
+        // SAVE STORAGE
+        //====================================================
+
+        public void SaveStorage(
+            string apartmentId,
+            string profileId,
+            InventoryManager storage)
+        {
+            if (storage == null ||
+                storage.Slots == null)
             {
                 return;
             }
 
-            EnsureSaveDirectoryExists();
+            Directory.CreateDirectory(
+                saveFolder
+            );
 
-            string inventorySavePath =
-                GetInventorySavePath(
+            string savePath =
+                GetSavePath(
+                    apartmentId,
                     profileId
                 );
 
@@ -105,11 +146,11 @@ namespace SurvivalNeeds.Managers
             lines.Add("[Inventory]");
 
             for (int i = 0;
-                i < inventory.Slots.Count;
+                i < storage.Slots.Count;
                 i++)
             {
                 InventorySlot slot =
-                    inventory.Slots[i];
+                    storage.Slots[i];
 
                 if (slot == null ||
                     slot.IsEmpty ||
@@ -125,89 +166,69 @@ namespace SurvivalNeeds.Managers
                     continue;
                 }
 
-                string itemId =
-                    slot.Item.Id;
-
-                int quantity =
-                    slot.Quantity;
+                string value =
+                    slot.Item.Id +
+                    "|" +
+                    slot.Quantity.ToString(
+                        CultureInfo.InvariantCulture
+                    );
 
                 if (slot.Item.IsWeapon)
                 {
-                    lines.Add(
-                        "Slot" +
-                        i +
-                        "=" +
-                        itemId +
-                        "|" +
-                        quantity.ToString(
-                            CultureInfo.InvariantCulture
-                        ) +
+                    value +=
                         "|" +
                         slot.Ammo.ToString(
                             CultureInfo.InvariantCulture
-                        )
-                    );
+                        );
                 }
-                else
-                {
-                    lines.Add(
-                        "Slot" +
-                        i +
-                        "=" +
-                        itemId +
-                        "|" +
-                        quantity.ToString(
-                            CultureInfo.InvariantCulture
-                        )
-                    );
-                }
+
+                lines.Add(
+                    "Slot" +
+                    i +
+                    "=" +
+                    value
+                );
             }
 
             File.WriteAllLines(
-                inventorySavePath,
+                savePath,
                 lines
             );
         }
 
         //====================================================
-        // LOAD PLAYER INVENTORY
+        // LOAD STORAGE
         //====================================================
 
-        public bool LoadInventory(
+        private void LoadStorage(
+            string apartmentId,
             string profileId,
-            InventoryManager inventory)
+            InventoryManager storage)
         {
-            if (inventory == null ||
-                inventory.Slots == null)
+            if (storage == null ||
+                storage.Slots == null)
             {
-                return false;
+                return;
             }
 
-            string inventorySavePath =
-                GetInventorySavePath(
+            string savePath =
+                GetSavePath(
+                    apartmentId,
                     profileId
                 );
 
-            ClearInventory(
-                inventory
-            );
-
             if (!File.Exists(
-                inventorySavePath))
+                savePath))
             {
-                return false;
+                return;
             }
 
             string[] lines =
                 File.ReadAllLines(
-                    inventorySavePath
+                    savePath
                 );
 
-            bool loadedAnyItem =
-                false;
-
-            foreach (
-                string rawLine in lines)
+            foreach (string rawLine in lines)
             {
                 if (string.IsNullOrWhiteSpace(
                     rawLine))
@@ -246,24 +267,17 @@ namespace SurvivalNeeds.Managers
 
                 if (!key.StartsWith(
                     "Slot",
-                    StringComparison.OrdinalIgnoreCase))
+                    StringComparison.OrdinalIgnoreCase) ||
+                    string.IsNullOrWhiteSpace(
+                        value))
                 {
                     continue;
                 }
-
-                if (string.IsNullOrWhiteSpace(
-                    value))
-                {
-                    continue;
-                }
-
-                string slotNumber =
-                    key.Substring(4);
 
                 int slotIndex;
 
                 if (!int.TryParse(
-                    slotNumber,
+                    key.Substring(4),
                     NumberStyles.Integer,
                     CultureInfo.InvariantCulture,
                     out slotIndex))
@@ -272,30 +286,34 @@ namespace SurvivalNeeds.Managers
                 }
 
                 if (slotIndex < 0 ||
-                    slotIndex >=
-                    inventory.Slots.Count)
+                    slotIndex >= storage.Slots.Count)
                 {
                     continue;
                 }
 
-                string[] itemData =
+                string[] parts =
                     value.Split('|');
 
-                if (itemData.Length < 2 ||
-                    itemData.Length > 3)
+                if (parts.Length < 2 ||
+                    parts.Length > 3)
                 {
                     continue;
                 }
 
-                string itemId =
-                    itemData[0]
-                        .Trim()
-                        .ToLowerInvariant();
+                InventoryItem item =
+                    ItemDatabase.GetItem(
+                        parts[0]
+                    );
+
+                if (item == null)
+                {
+                    continue;
+                }
 
                 int quantity;
 
                 if (!int.TryParse(
-                    itemData[1],
+                    parts[1],
                     NumberStyles.Integer,
                     CultureInfo.InvariantCulture,
                     out quantity))
@@ -308,18 +326,7 @@ namespace SurvivalNeeds.Managers
                     continue;
                 }
 
-                InventoryItem item =
-                    ItemDatabase.GetItem(
-                        itemId
-                    );
-
-                if (item == null)
-                {
-                    continue;
-                }
-
-                if (quantity >
-                    item.MaxStack)
+                if (quantity > item.MaxStack)
                 {
                     quantity =
                         item.MaxStack;
@@ -330,12 +337,12 @@ namespace SurvivalNeeds.Managers
                     int ammo =
                         item.StartingAmmo;
 
-                    if (itemData.Length == 3)
+                    if (parts.Length == 3)
                     {
                         int loadedAmmo;
 
                         if (int.TryParse(
-                            itemData[2],
+                            parts[2],
                             NumberStyles.Integer,
                             CultureInfo.InvariantCulture,
                             out loadedAmmo))
@@ -347,11 +354,10 @@ namespace SurvivalNeeds.Managers
 
                     if (ammo < 0)
                     {
-                        ammo =
-                            0;
+                        ammo = 0;
                     }
 
-                    inventory.Slots[
+                    storage.Slots[
                         slotIndex
                     ].SetItem(
                         item,
@@ -361,58 +367,107 @@ namespace SurvivalNeeds.Managers
                 }
                 else
                 {
-                    inventory.Slots[
+                    storage.Slots[
                         slotIndex
                     ].SetItem(
                         item,
                         quantity
                     );
                 }
-
-                loadedAnyItem =
-                    true;
             }
-
-            return loadedAnyItem;
         }
 
         //====================================================
-        // CLEAR PLAYER INVENTORY
+        // SAVE ALL
         //====================================================
 
-        private void ClearInventory(
-            InventoryManager inventory)
+        public void SaveAll()
         {
-            if (inventory == null ||
-                inventory.Slots == null)
+            foreach (
+                KeyValuePair<string, InventoryManager>
+                pair in storages)
             {
-                return;
+                string[] keyParts =
+                    pair.Key.Split(
+                        new[] { "::" },
+                        StringSplitOptions.None
+                    );
+
+                if (keyParts.Length != 2)
+                {
+                    continue;
+                }
+
+                SaveStorage(
+                    keyParts[0],
+                    keyParts[1],
+                    pair.Value
+                );
+            }
+        }
+
+        //====================================================
+        // KEYS AND PATHS
+        //====================================================
+
+        private string CreateStorageKey(
+            string apartmentId,
+            string profileId)
+        {
+            return Normalize(
+                apartmentId,
+                "APARTMENT"
+            ) +
+            "::" +
+            Normalize(
+                profileId,
+                "DEFAULT"
+            );
+        }
+
+        private string GetSavePath(
+            string apartmentId,
+            string profileId)
+        {
+            return Path.Combine(
+                saveFolder,
+                "apartment_" +
+                Normalize(
+                    apartmentId,
+                    "APARTMENT"
+                ) +
+                "_" +
+                Normalize(
+                    profileId,
+                    "DEFAULT"
+                ) +
+                ".ini"
+            );
+        }
+
+        private string Normalize(
+            string value,
+            string fallback)
+        {
+            if (string.IsNullOrWhiteSpace(
+                value))
+            {
+                value =
+                    fallback;
             }
 
             foreach (
-                InventorySlot slot
-                in inventory.Slots)
+                char invalidCharacter
+                in Path.GetInvalidFileNameChars())
             {
-                if (slot != null)
-                {
-                    slot.Clear();
-                }
+                value =
+                    value.Replace(
+                        invalidCharacter,
+                        '_'
+                    );
             }
-        }
 
-        //====================================================
-        // SAVE DIRECTORY
-        //====================================================
-
-        private void EnsureSaveDirectoryExists()
-        {
-            if (!Directory.Exists(
-                saveDirectory))
-            {
-                Directory.CreateDirectory(
-                    saveDirectory
-                );
-            }
+            return value;
         }
     }
 }

@@ -73,9 +73,6 @@ namespace SurvivalNeeds.Vendors
 
         private const int CartRows = 8;
 
-        private const float MaximumInventoryWeight =
-            40f;
-
         private readonly Color overlayColor =
             Color.FromArgb(
                 155,
@@ -1423,7 +1420,7 @@ namespace SurvivalNeeds.Vendors
             if (!CanInventoryFitCart())
             {
                 Notification.Show(
-                    "~r~Your inventory does not have enough space"
+                    "~r~Not enough inventory space or carrying capacity"
                 );
 
                 return;
@@ -1480,6 +1477,29 @@ namespace SurvivalNeeds.Vendors
 
         private bool CanInventoryFitCart()
         {
+            float cartWeight = 0f;
+
+            foreach (CartEntry entry in cart)
+            {
+                if (entry == null ||
+                    entry.VendorItem == null ||
+                    entry.VendorItem.Item == null ||
+                    entry.Quantity <= 0)
+                {
+                    continue;
+                }
+
+                cartWeight +=
+                    entry.VendorItem.Item.Weight *
+                    entry.Quantity;
+            }
+
+            if (!inventory.CanCarryWeight(
+                cartWeight))
+            {
+                return false;
+            }
+
             Dictionary<string, int>
                 quantitiesToAdd =
                     new Dictionary<string, int>();

@@ -614,6 +614,22 @@ namespace SurvivalNeeds.Inventory
         true
     )
 },
+
+{
+    "weapon_petrolcan",
+
+    new InventoryItem(
+        "weapon_petrolcan",
+        "Jerry Can",
+        "A full portable fuel container. Can refuel vehicles by up to 25%.",
+        ItemCategory.Tool,
+        2.50f,
+        150,
+        "weapon_petrolcan.png",
+        WeaponHash.PetrolCan,
+        4500
+    )
+},
             };
 
         public static InventoryItem GetItem(string itemId)

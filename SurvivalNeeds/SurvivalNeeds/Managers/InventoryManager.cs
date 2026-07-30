@@ -9,18 +9,41 @@ namespace SurvivalNeeds.Inventory
     public class InventoryManager
     {
 
-        public const float MaximumWeight = 40f;
-        public List<InventorySlot> Slots { get; private set; }
+        public const float DefaultMaximumWeight = 15f;
+
+        public float MaximumWeight
+        {
+            get;
+            private set;
+        }
+
+        public List<InventorySlot> Slots
+        {
+            get;
+            private set;
+        }
 
         public event Action InventoryChanged;
 
-        public InventoryManager(int slotCount = 40)
+        public InventoryManager(
+            int slotCount = 30,
+            float maximumWeight = DefaultMaximumWeight)
         {
-            Slots = new List<InventorySlot>();
+            MaximumWeight =
+                maximumWeight > 0f
+                    ? maximumWeight
+                    : DefaultMaximumWeight;
 
-            for (int i = 0; i < slotCount; i++)
+            Slots =
+                new List<InventorySlot>();
+
+            for (int i = 0;
+                i < slotCount;
+                i++)
             {
-                Slots.Add(new InventorySlot());
+                Slots.Add(
+                    new InventorySlot()
+                );
             }
         }
 
@@ -48,7 +71,20 @@ namespace SurvivalNeeds.Inventory
                 return false;
 
             InventoryItem item =
-                ItemDatabase.Items[itemId];
+    ItemDatabase.Items[itemId];
+
+            float weightToAdd =
+                item.Weight *
+                quantity;
+
+            if (!CanCarryWeight(weightToAdd))
+            {
+                Notification.Show(
+                    "~r~Inventory weight limit reached"
+                );
+
+                return false;
+            }
 
             bool inventoryWasChanged =
                 false;
@@ -555,8 +591,7 @@ namespace SurvivalNeeds.Inventory
         }
 
         public bool CanCarryWeight(
-            float additionalWeight,
-            float maximumWeight = MaximumWeight)
+            float additionalWeight)
         {
             if (additionalWeight < 0f)
             {
@@ -565,14 +600,13 @@ namespace SurvivalNeeds.Inventory
 
             return GetCurrentWeight() +
                 additionalWeight <=
-                maximumWeight;
+                MaximumWeight;
         }
 
-        public float GetRemainingWeight(
-            float maximumWeight = MaximumWeight)
+        public float GetRemainingWeight()
         {
             float remainingWeight =
-                maximumWeight -
+                MaximumWeight -
                 GetCurrentWeight();
 
             if (remainingWeight < 0f)

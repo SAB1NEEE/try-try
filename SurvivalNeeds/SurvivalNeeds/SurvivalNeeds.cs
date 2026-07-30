@@ -4,6 +4,7 @@ using GTA.UI;
 using SurvivalNeeds.Systems;
 using SurvivalNeeds.UI;
 using SurvivalNeeds.Actions;
+using SurvivalNeeds.Apartments;
 using SurvivalNeeds.Inventory;
 using SurvivalNeeds.Loot;
 using SurvivalNeeds.Managers;
@@ -59,6 +60,13 @@ namespace SurvivalNeeds
 
         private int lastAutoSaveTime;
 
+        private int lastKnownCharacterCash;
+
+        private string currentCharacterProfileId;
+
+        private bool suppressInventoryAutoSave =
+            false;
+
         private readonly InventoryManager
             inventory =
                 new InventoryManager();
@@ -89,6 +97,9 @@ namespace SurvivalNeeds
 
         private PersonalVehiclePhoneSystem
             personalVehiclePhoneSystem;
+
+        private ApartmentManager
+            apartmentManager;
 
         private VendorsManager
             vendorsManager;
@@ -126,11 +137,27 @@ namespace SurvivalNeeds
             claimKeyPressedLastFrame =
                 false;
 
+        private int vehicleEnteredTime = 0;
+        private int trackedVehicleHandle = 0;
+
+        private const int ClaimPromptDurationMilliseconds =
+            5000;
+
+        //====================================================
+        // PLAYER INVENTORY CHANGED
+        //====================================================
+
         private void OnPlayerInventoryChanged()
         {
+            if (suppressInventoryAutoSave)
+            {
+                return;
+            }
+
             try
             {
                 saveManager.SaveInventory(
+                    currentCharacterProfileId,
                     inventory
                 );
             }
@@ -144,6 +171,10 @@ namespace SurvivalNeeds
             }
         }
 
+        //====================================================
+        // CONSTRUCTOR
+        //====================================================
+
         public SurvivalNeeds()
         {
             Tick += OnTick;
@@ -152,10 +183,11 @@ namespace SurvivalNeeds
             Interval = 0;
 
             vehicleFuelSystem =
-            new VehicleFuelSystem(
+                new VehicleFuelSystem(
                     money,
                     vehicleInventoryManager
                 );
+
             hud =
                 new HUD(
                     vehicleFuelSystem
@@ -163,10 +195,20 @@ namespace SurvivalNeeds
 
             try
             {
+                currentCharacterProfileId =
+                    GetCurrentCharacterProfileId();
+
+                vehicleInventoryManager.SetProfile(
+                    currentCharacterProfileId
+                );
+
                 LoadGame();
 
+                lastKnownCharacterCash =
+                    money.Cash;
+
                 weaponWheelSyncSystem =
-                    new WeaponWheelSyncSystem(
+                     new WeaponWheelSyncSystem(
                         inventory
                     );
 
@@ -195,8 +237,18 @@ namespace SurvivalNeeds
                     );
 
                 personalVehiclePhoneSystem =
-                    new PersonalVehiclePhoneSystem(
+                        new PersonalVehiclePhoneSystem(
                         vehicleInventoryManager
+                    );
+
+                apartmentManager =
+                    new ApartmentManager(
+                        inventory,
+                        hunger,
+                        thirst,
+                        stress,
+                        GetCurrentCharacterProfileId,
+                        () => SaveGame()
                     );
 
                 vendorsManager =
@@ -217,7 +269,7 @@ namespace SurvivalNeeds
                         inventory,
                         vehicleInventoryManager,
                         money,
-                        SaveGame
+                        () => SaveGame()
                     );
 
                 atmMenu =
@@ -258,12 +310,140 @@ namespace SurvivalNeeds
         }
 
         //====================================================
+        // GET CURRENT CHARACTER PROFILE
+        //====================================================
+
+        private string GetCurrentCharacterProfileId()
+        {
+            Ped player =
+                Game.Player.Character;
+
+            if (player == null ||
+                !player.Exists())
+            {
+                return "DEFAULT";
+            }
+
+            return player.Model.Hash.ToString(
+                System.Globalization
+                    .CultureInfo.InvariantCulture
+            );
+        }
+
+        //====================================================
+        // UPDATE CHARACTER PROFILE
+        //====================================================
+
+        private void UpdateCharacterProfile()
+        {
+            Ped player =
+                Game.Player.Character;
+
+            if (player == null ||
+                !player.Exists())
+            {
+                return;
+            }
+
+            string detectedProfileId =
+                GetCurrentCharacterProfileId();
+
+            if (string.IsNullOrWhiteSpace(
+                detectedProfileId))
+            {
+                return;
+            }
+
+            if (string.Equals(
+                detectedProfileId,
+                currentCharacterProfileId,
+                StringComparison.OrdinalIgnoreCase))
+            {
+                return;
+            }
+
+            /*
+             * Save the character that the player
+             * is leaving before changing profiles.
+             */
+            SaveGame(
+            lastKnownCharacterCash
+            );
+
+            currentCharacterProfileId =
+                detectedProfileId;
+
+            vehicleInventoryManager.SetProfile(
+                currentCharacterProfileId
+            );
+
+            vehicleInventoryManager.SetProfile(
+                currentCharacterProfileId
+            );
+
+            /*
+             * Close menus so they do not keep references
+             * to the previous character state.
+             */
+            if (inventoryMenu != null &&
+                inventoryMenu.Visible)
+            {
+                inventoryMenu.Toggle();
+            }
+
+            playerInventoryOpen =
+                false;
+
+            if (vehicleStorageMenu != null &&
+                vehicleStorageMenu.Visible)
+            {
+                vehicleStorageMenu.Close();
+            }
+
+            activeTrunkVehicle =
+                null;
+
+            apartmentManager?.CloseStorage();
+
+            vendorsManager?.CloseMenu();
+
+            if (gunStoreMenu != null &&
+                gunStoreMenu.Visible)
+            {
+                gunStoreMenu.Close();
+            }
+
+            if (atmMenu != null &&
+                atmMenu.Visible)
+            {
+                atmMenu.Close();
+            }
+
+            LoadGame();
+
+            lastKnownCharacterCash =
+                money.Cash;
+
+            weaponWheelSyncSystem?.Sync();
+
+            lastAutoSaveTime =
+                Game.GameTime;
+
+            Notification.Show(
+                "~b~Character profile loaded:~s~ " +
+                currentCharacterProfileId,
+                false
+            );
+        }
+
+        //====================================================
         // LOAD GAME
         //====================================================
 
         private void LoadGame()
         {
             saveSystem.Load(
+                currentCharacterProfileId,
                 hunger,
                 thirst,
                 stress,
@@ -271,9 +451,23 @@ namespace SurvivalNeeds
                 bankAccount
             );
 
-            saveManager.LoadInventory(
-                inventory
-            );
+            suppressInventoryAutoSave =
+                true;
+
+            try
+            {
+                inventory.Clear();
+
+                saveManager.LoadInventory(
+                    currentCharacterProfileId,
+                    inventory
+                );
+            }
+            finally
+            {
+                suppressInventoryAutoSave =
+                    false;
+            }
         }
 
         //====================================================
@@ -284,6 +478,11 @@ namespace SurvivalNeeds
             object sender,
             EventArgs e)
         {
+            UpdateCharacterProfile();
+
+            lastKnownCharacterCash =
+            money.Cash;
+
             // Disable GTA's default Ammu-Nation shop.
             Function.Call(
                 Hash.TERMINATE_ALL_SCRIPTS_WITH_THIS_NAME,
@@ -296,13 +495,14 @@ namespace SurvivalNeeds
             weaponWheelSyncSystem?.Sync();
             deathPenaltySystem?.Update();
 
-            // Custom vehicle fuel consumption and refueling.
             vehicleFuelSystem?.Update();
 
             UpdateSurvival();
             UpdateAutoSave();
 
             personalVehiclePhoneSystem?.Update();
+
+            apartmentManager?.Update();
 
             UpdateGunStore();
 
@@ -324,11 +524,16 @@ namespace SurvivalNeeds
                 atmMenu != null &&
                 atmMenu.Visible;
 
+            bool apartmentMenuOpen =
+                apartmentManager != null &&
+                apartmentManager.MenuVisible;
+
             atmMenu?.Process();
 
             if (gunStoreMenuOpen ||
                 vendorMenuOpen ||
-                atmMenuOpen)
+                atmMenuOpen ||
+                apartmentMenuOpen)
             {
                 DrawMenus();
                 return;
@@ -432,19 +637,34 @@ namespace SurvivalNeeds
         // SAVE EVERYTHING
         //====================================================
 
-        private void SaveGame()
+        private void SaveGame(
+            int? cashOverride = null)
         {
             try
             {
+                if (string.IsNullOrWhiteSpace(
+                    currentCharacterProfileId))
+                {
+                    currentCharacterProfileId =
+                        GetCurrentCharacterProfileId();
+                }
+
+                int cashToSave =
+                    cashOverride.HasValue
+                        ? cashOverride.Value
+                        : money.Cash;
+
                 saveSystem.Save(
+                    currentCharacterProfileId,
                     hunger.Value,
                     thirst.Value,
                     stress.Value,
-                    money.Cash,
+                    cashToSave,
                     bankAccount
                 );
 
                 saveManager.SaveInventory(
+                    currentCharacterProfileId,
                     inventory
                 );
 
@@ -452,6 +672,8 @@ namespace SurvivalNeeds
                     .SaveAll();
 
                 vehicleFuelSystem?.SaveAll();
+
+                apartmentManager?.SaveAll();
             }
             catch (Exception ex)
             {
@@ -533,6 +755,9 @@ namespace SurvivalNeeds
                 !player.Exists() ||
                 !player.IsInVehicle())
             {
+                vehicleEnteredTime = 0;
+                trackedVehicleHandle = 0;
+
                 claimKeyPressedLastFrame =
                     claimPressed;
 
@@ -554,16 +779,35 @@ namespace SurvivalNeeds
             if (vehicle.Driver == null ||
                 !vehicle.Driver.Exists() ||
                 vehicle.Driver.Handle !=
-                    player.Handle)
+                player.Handle)
             {
+                vehicleEnteredTime = 0;
+                trackedVehicleHandle = 0;
+
                 claimKeyPressedLastFrame =
                     claimPressed;
 
                 return;
             }
 
+            if (trackedVehicleHandle !=
+                vehicle.Handle)
+            {
+                trackedVehicleHandle =
+                    vehicle.Handle;
+
+                vehicleEnteredTime =
+                    Game.GameTime;
+            }
+
+            bool showClaimPrompt =
+                Game.GameTime -
+                vehicleEnteredTime <=
+                ClaimPromptDurationMilliseconds;
+
             if (!inventoryOpen &&
-                !trunkOpen)
+                !trunkOpen &&
+                showClaimPrompt)
             {
                 string existingClaimId =
                     vehicleInventoryManager
@@ -583,7 +827,7 @@ namespace SurvivalNeeds
                 {
                     GTA.UI.Screen
                         .ShowHelpTextThisFrame(
-                            "~g~Personal Vehicle~s~ | ID: " +
+                            "~g~You already own this vehicle~s~ | ID: " +
                             existingClaimId
                         );
                 }

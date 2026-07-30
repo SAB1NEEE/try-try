@@ -38,8 +38,6 @@ namespace SurvivalNeeds.UI
         private const int ItemsPerPage =
             Columns * Rows;
 
-        private const float MaximumWeight = 40f;
-
         private bool wPressedLastFrame;
         private bool sPressedLastFrame;
         private bool aPressedLastFrame;
@@ -161,7 +159,7 @@ namespace SurvivalNeeds.UI
             DrawRightText(
                 currentWeight.ToString("0.00") +
                 " / " +
-                MaximumWeight.ToString("0.00") +
+                inventory.MaximumWeight.ToString("0.00") +
                 " KG",
                 panelX + panelWidth - 0.012f,
                 panelY + 0.015f,
@@ -568,25 +566,6 @@ namespace SurvivalNeeds.UI
                 slot.Quantity.ToString()
             );
 
-            DrawInformationRow(
-                panelX,
-                panelY + 0.445f,
-                panelWidth,
-                "UNIT WEIGHT",
-                item.Weight.ToString("0.00") +
-                " KG"
-            );
-
-            DrawInformationRow(
-                panelX,
-                panelY + 0.495f,
-                panelWidth,
-                "TOTAL WEIGHT",
-                (item.Weight * slot.Quantity)
-                    .ToString("0.00") +
-                " KG"
-            );
-
             float informationRowY =
             panelY + 0.345f;
 
@@ -599,12 +578,16 @@ namespace SurvivalNeeds.UI
                     panelX,
                     informationRowY,
                     panelWidth,
-                    item.IsMeleeWeapon
+                    item.WeaponHash == WeaponHash.PetrolCan
+                        ? "FUEL UNITS"
+                        : item.IsMeleeWeapon
                         ? "WEAPON TYPE"
                         : "AMMUNITION",
-                    item.IsMeleeWeapon
-                        ? "MELEE"
-                        : slot.Ammo.ToString()
+                    item.WeaponHash == WeaponHash.PetrolCan
+                    ? slot.Ammo + " / 4500"
+                    : item.IsMeleeWeapon
+                    ? "MELEE"
+                    : slot.Ammo.ToString()
                 );
 
                 informationRowY += 0.050f;
@@ -887,8 +870,10 @@ namespace SurvivalNeeds.UI
             );
 
             float percentage =
-                currentWeight /
-                MaximumWeight;
+            inventory.MaximumWeight <= 0f
+            ? 0f
+            : currentWeight /
+          inventory.MaximumWeight;
 
             if (percentage < 0f)
                 percentage = 0f;
@@ -901,7 +886,7 @@ namespace SurvivalNeeds.UI
                 y,
                 width * percentage,
                 height,
-                currentWeight > MaximumWeight
+                currentWeight > inventory.MaximumWeight
                     ? Color.FromArgb(
                         255,
                         220,

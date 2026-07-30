@@ -17,6 +17,9 @@ namespace SurvivalNeeds.UI
         private readonly InventoryManager playerInventory;
         private readonly VehicleInventory vehicleInventory;
 
+        private readonly string storageTitle;
+        private readonly bool isApartmentStorage;
+
         private readonly Dictionary<string, CustomSprite>
             iconSprites =
                 new Dictionary<string, CustomSprite>();
@@ -43,9 +46,6 @@ namespace SurvivalNeeds.UI
         private const int Rows = 3;
         private const int ItemsPerPage = Columns * Rows;
 
-        private const float PlayerMaximumWeight = 40f;
-        private const float TrunkMaximumWeight = 100f;
-
         private readonly Color overlayColor =
             Color.FromArgb(155, 5, 7, 15);
 
@@ -68,14 +68,46 @@ namespace SurvivalNeeds.UI
             Color.FromArgb(255, 190, 192, 205);
 
         public VehicleStorageMenu(
-            InventoryManager playerInventory,
-            VehicleInventory vehicleInventory)
+    InventoryManager playerInventory,
+    VehicleInventory vehicleInventory)
         {
             this.playerInventory =
                 playerInventory;
 
             this.vehicleInventory =
                 vehicleInventory;
+
+            storageTitle =
+                "VEHICLE TRUNK";
+
+            isApartmentStorage =
+                false;
+
+            iconsFolder =
+                GetIconsFolder();
+        }
+
+        public VehicleStorageMenu(
+            InventoryManager playerInventory,
+            InventoryManager storageInventory)
+        {
+            this.playerInventory =
+                playerInventory;
+
+            vehicleInventory =
+                new VehicleInventory(
+                    "CUSTOM_STORAGE",
+                    storageInventory.Slots.Count
+                );
+
+            vehicleInventory.Inventory =
+                storageInventory;
+
+            storageTitle =
+                "APARTMENT STORAGE";
+
+            isApartmentStorage =
+                true;
 
             iconsFolder =
                 GetIconsFolder();
@@ -172,21 +204,21 @@ namespace SurvivalNeeds.UI
                 "PLAYER INVENTORY",
                 !trunkSideSelected,
                 playerSelectedIndex,
-                PlayerMaximumWeight
+                playerInventory.MaximumWeight
             );
 
             DrawInventoryPanel(
-                vehicleInventory.Inventory,
-                trunkSlots,
-                0.515f,
-                0.105f,
-                0.46f,
-                0.74f,
-                "VEHICLE TRUNK",
-                trunkSideSelected,
-                trunkSelectedIndex,
-                TrunkMaximumWeight
-            );
+    vehicleInventory.Inventory,
+    trunkSlots,
+    0.515f,
+    0.105f,
+    0.46f,
+    0.74f,
+    storageTitle,
+    trunkSideSelected,
+    trunkSelectedIndex,
+    vehicleInventory.Inventory.MaximumWeight
+);
 
             DrawFooter();
         }
@@ -898,7 +930,7 @@ namespace SurvivalNeeds.UI
         }
 
         private void TransferFromPlayerToTrunk(
-            List<int> playerSlots)
+    List<int> playerSlots)
         {
             if (playerSlots.Count == 0)
             {
@@ -923,6 +955,13 @@ namespace SurvivalNeeds.UI
                     actualSlotIndex
                 ];
 
+            if (slot == null ||
+                slot.IsEmpty ||
+                slot.Item == null)
+            {
+                return;
+            }
+
             string itemName =
                 slot.Item.Name;
 
@@ -938,24 +977,32 @@ namespace SurvivalNeeds.UI
                 Notification.Show(
                     "~g~Stored " +
                     itemName +
-                    " in vehicle trunk"
+                    (
+                        isApartmentStorage
+                            ? " in apartment storage"
+                            : " in vehicle trunk"
+                    )
                 );
             }
             else
             {
                 Notification.Show(
-                    "~r~Vehicle trunk is full"
+                    isApartmentStorage
+                        ? "~r~Apartment storage is full"
+                        : "~r~Vehicle trunk is full"
                 );
             }
         }
 
         private void TransferFromTrunkToPlayer(
-            List<int> trunkSlots)
+    List<int> trunkSlots)
         {
             if (trunkSlots.Count == 0)
             {
                 Notification.Show(
-                    "~r~Vehicle trunk is empty"
+                    isApartmentStorage
+                        ? "~r~Apartment storage is empty"
+                        : "~r~Vehicle trunk is empty"
                 );
 
                 return;
@@ -974,6 +1021,13 @@ namespace SurvivalNeeds.UI
                 vehicleInventory.Inventory
                     .Slots[actualSlotIndex];
 
+            if (slot == null ||
+                slot.IsEmpty ||
+                slot.Item == null)
+            {
+                return;
+            }
+
             string itemName =
                 slot.Item.Name;
 
@@ -990,7 +1044,11 @@ namespace SurvivalNeeds.UI
                 Notification.Show(
                     "~g~Took " +
                     itemName +
-                    " from vehicle trunk"
+                    (
+                        isApartmentStorage
+                            ? " from apartment storage"
+                            : " from vehicle trunk"
+                    )
                 );
             }
             else

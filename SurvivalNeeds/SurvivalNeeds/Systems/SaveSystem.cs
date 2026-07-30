@@ -9,7 +9,6 @@ namespace SurvivalNeeds.Systems
     public class SaveSystem
     {
         private readonly string saveFolder;
-        private readonly string saveFile;
         public bool WeaponsConfiscated { get; private set; }
 
         public SaveSystem()
@@ -39,11 +38,6 @@ namespace SurvivalNeeds.Systems
                 "SurvivalNeeds"
             );
 
-            saveFile = Path.Combine(
-                saveFolder,
-                "save.ini"
-            );
-
             try
             {
                 Directory.CreateDirectory(saveFolder);
@@ -57,46 +51,90 @@ namespace SurvivalNeeds.Systems
             }
         }
 
+        private string GetSaveFile(
+    string profileId)
+        {
+            if (string.IsNullOrWhiteSpace(
+                profileId))
+            {
+                profileId = "DEFAULT";
+            }
+
+            foreach (char invalidCharacter
+                in Path.GetInvalidFileNameChars())
+            {
+                profileId =
+                    profileId.Replace(
+                        invalidCharacter,
+                        '_'
+                    );
+            }
+
+            return Path.Combine(
+                saveFolder,
+                "save_" +
+                profileId +
+                ".ini"
+            );
+        }
+
         public void Save(
-        float hunger,
-        float thirst,
-        float stress,
-        int cash,
-        BankingSystem.BankAccount bankAccount)
+    string profileId,
+    float hunger,
+    float thirst,
+    float stress,
+    int cash,
+    BankingSystem.BankAccount bankAccount)
         {
             try
             {
-                Directory.CreateDirectory(saveFolder);
+                Directory.CreateDirectory(
+                    saveFolder
+                );
 
                 string[] lines =
-{
-    "Hunger=" + hunger.ToString(
-        CultureInfo.InvariantCulture),
+                {
+            "Hunger=" +
+                hunger.ToString(
+                    CultureInfo.InvariantCulture
+                ),
 
-    "Thirst=" + thirst.ToString(
-        CultureInfo.InvariantCulture),
+            "Thirst=" +
+                thirst.ToString(
+                    CultureInfo.InvariantCulture
+                ),
 
-    "Stress=" + stress.ToString(
-        CultureInfo.InvariantCulture),
+            "Stress=" +
+                stress.ToString(
+                    CultureInfo.InvariantCulture
+                ),
 
-    "Cash=" + cash.ToString(
-        CultureInfo.InvariantCulture),
+            "Cash=" +
+                cash.ToString(
+                    CultureInfo.InvariantCulture
+                ),
 
-    "HasBankAccount=" +
-        bankAccount.HasAccount,
+            "HasBankAccount=" +
+                bankAccount.HasAccount,
 
-    "AccountNumber=" +
-        bankAccount.AccountNumber,
+            "AccountNumber=" +
+                bankAccount.AccountNumber,
 
-    "BankBalance=" +
-        bankAccount.Balance.ToString(
-            CultureInfo.InvariantCulture),
+            "BankBalance=" +
+                bankAccount.Balance.ToString(
+                    CultureInfo.InvariantCulture
+                ),
 
-    "WeaponsConfiscated=" +     
-        WeaponsConfiscated,
+            "WeaponsConfiscated=" +
+                WeaponsConfiscated,
 
-    "MoneyMode=GTA"
-};
+            "MoneyMode=GTA"
+        };
+
+                string saveFile =
+                    GetSaveFile(
+                        profileId
+                    );
 
                 File.WriteAllLines(
                     saveFile,
@@ -117,7 +155,8 @@ namespace SurvivalNeeds.Systems
             WeaponsConfiscated = true;
         }
 
-        public void Load(
+                public void Load(
+                string profileId,
             HungerSystem hunger,
             ThirstSystem thirst,
             StressSystem stress,
@@ -126,6 +165,10 @@ namespace SurvivalNeeds.Systems
         {
             try
             {
+                    string saveFile =
+                    GetSaveFile(
+                    profileId
+                    );
                 if (!File.Exists(saveFile))
                 {
                     // New save starts with $100.

@@ -36,6 +36,7 @@ namespace SurvivalNeeds.Systems
         private int lastUpdateTime;
         private int lastEmptyWarningTime;
         private int lastNoMoneyWarningTime;
+        private int lastEmptyJerryCanWarningTime;
 
         private float pendingFuelAmount;
 
@@ -46,10 +47,16 @@ namespace SurvivalNeeds.Systems
 
         private const int RefuelPricePerPercent = 2;
 
+        private const float JerryCanRefuelDistance = 3.0f;
+        private const float JerryCanFuelPerSecond = 2.0f;
+
+        private const int JerryCanUnitsPerFuelPercent = 180;
+        private const int MaximumJerryCanUnits = 4500;
+
         // Current fuel-drain values.
-        private const float IdleConsumption = 0.10f;
-        private const float DrivingConsumption = 0.20f;
-        private const float HighSpeedConsumption = 0.35f;
+        private const float IdleConsumption = 0.01f;
+        private const float DrivingConsumption = 0.04f;
+        private const float HighSpeedConsumption = 0.08f;
 
         public VehicleFuelSystem(
             MoneySystem money,
@@ -123,10 +130,23 @@ namespace SurvivalNeeds.Systems
                 Game.Player.Character;
 
             if (player == null ||
-                !player.Exists() ||
-                !player.IsInVehicle())
+                !player.Exists())
             {
                 pendingFuelAmount = 0f;
+                return;
+            }
+
+            /*
+             * Allow the player to refuel a nearby vehicle
+             * with a jerry can while standing outside.
+             */
+            if (!player.IsInVehicle())
+            {
+                UpdateJerryCanRefueling(
+                    player,
+                    elapsedMilliseconds
+                );
+
                 return;
             }
 
@@ -257,7 +277,7 @@ namespace SurvivalNeeds.Systems
 
             GTA.UI.Screen
                 .ShowHelpTextThisFrame(
-                    "Hold ~INPUT_CONTEXT~ to refuel" +
+                    "Hold ~y~ENTER~s~to refuel" +
                     "~n~Price: ~g~$" +
                     RefuelPricePerPercent +
                     "~s~ per 1%" +
@@ -265,12 +285,12 @@ namespace SurvivalNeeds.Systems
                     fullRefuelPrice
                 );
 
-            bool ePressed =
+            bool enterPressed =
                 Game.IsKeyPressed(
-                    System.Windows.Forms.Keys.E
+        System.Windows.Forms.Keys.Enter
                 );
 
-            if (!ePressed)
+            if (!enterPressed)
             {
                 pendingFuelAmount = 0f;
                 return false;
@@ -415,6 +435,259 @@ namespace SurvivalNeeds.Systems
         }
 
         //====================================================
+        // JERRY CAN REFUELING
+        //====================================================
+
+        private void UpdateJerryCanRefueling(
+            Ped player,
+            int elapsedMilliseconds)
+        {
+            if (player == null ||
+                !player.Exists() ||
+                player.IsInVehicle())
+            {
+                return;
+            }
+
+            uint selectedWeapon =
+                Function.Call<uint>(
+                    Hash.GET_SELECTED_PED_WEAPON,
+                    player.Handle
+                );
+
+            uint petrolCanHash =
+                unchecked(
+                    (uint)WeaponHash.PetrolCan
+                );
+
+            if (selectedWeapon !=
+                petrolCanHash)
+            {
+                return;
+            }
+
+            Vehicle nearestVehicle =
+                FindNearestVehicle(
+                    player.Position,
+                    JerryCanRefuelDistance
+                );
+
+            if (nearestVehicle == null ||
+                !nearestVehicle.Exists())
+            {
+                return;
+            }
+
+            float currentFuel =
+                GetFuel(
+                    nearestVehicle
+                );
+
+            if (currentFuel >= MaximumFuel)
+            {
+                GTA.UI.Screen
+                    .ShowHelpTextThisFrame(
+                        "~g~Vehicle fuel tank is full"
+                    );
+
+                return;
+            }
+
+            int jerryCanUnits =
+                Function.Call<int>(
+                    Hash.GET_AMMO_IN_PED_WEAPON,
+                    player.Handle,
+                    petrolCanHash
+                );
+
+            if (jerryCanUnits <= 0)
+            {
+                ShowEmptyJerryCanWarning();
+                return;
+            }
+
+            int possibleFuelPercent =
+                jerryCanUnits /
+                JerryCanUnitsPerFuelPercent;
+
+            GTA.UI.Screen
+                .ShowHelpTextThisFrame(
+                    "Hold ~y~ENTER~s~ to refuel vehicle" +
+                    "~n~Jerry can: ~y~" +
+                    jerryCanUnits +
+                    "~s~ / " +
+                    MaximumJerryCanUnits +
+                    " units" +
+                    "~n~Available fuel: ~g~" +
+                    possibleFuelPercent +
+                    "%"
+                );
+
+            bool enterPressed =
+                Game.IsKeyPressed(
+                System.Windows.Forms.Keys.Enter
+            );
+
+            if (!enterPressed)
+            {
+                pendingFuelAmount = 0f;
+                return;
+            }
+
+            float elapsedSeconds =
+                elapsedMilliseconds /
+                1000f;
+
+            pendingFuelAmount +=
+                JerryCanFuelPerSecond *
+                elapsedSeconds;
+
+            int wholeFuelPercent =
+                (int)pendingFuelAmount;
+
+            if (wholeFuelPercent <= 0)
+            {
+                GTA.UI.Screen.ShowSubtitle(
+                    "Refueling with jerry can...",
+                    500
+                );
+
+                return;
+            }
+
+            int availableFuelPercent =
+                jerryCanUnits /
+                JerryCanUnitsPerFuelPercent;
+
+            if (wholeFuelPercent >
+                availableFuelPercent)
+            {
+                wholeFuelPercent =
+                    availableFuelPercent;
+            }
+
+            int remainingVehicleCapacity =
+                (int)Math.Ceiling(
+                    MaximumFuel -
+                    currentFuel
+                );
+
+            if (wholeFuelPercent >
+                remainingVehicleCapacity)
+            {
+                wholeFuelPercent =
+                    remainingVehicleCapacity;
+            }
+
+            if (wholeFuelPercent <= 0)
+            {
+                pendingFuelAmount = 0f;
+
+                ShowEmptyJerryCanWarning();
+
+                return;
+            }
+
+            int unitsToConsume =
+                wholeFuelPercent *
+                JerryCanUnitsPerFuelPercent;
+
+            int newJerryCanUnits =
+                jerryCanUnits -
+                unitsToConsume;
+
+            if (newJerryCanUnits < 0)
+            {
+                newJerryCanUnits = 0;
+            }
+
+            Function.Call(
+                Hash.SET_PED_AMMO,
+                player.Handle,
+                petrolCanHash,
+                newJerryCanUnits
+            );
+
+            AddFuel(
+                nearestVehicle,
+                wholeFuelPercent
+            );
+
+            pendingFuelAmount -=
+                wholeFuelPercent;
+
+            int displayedVehicleFuel =
+                (int)Math.Round(
+                    GetFuel(
+                        nearestVehicle
+                    )
+                );
+
+            GTA.UI.Screen.ShowSubtitle(
+                "Refueling... " +
+                displayedVehicleFuel +
+                "%~n~Jerry can: " +
+                newJerryCanUnits +
+                " / " +
+                MaximumJerryCanUnits,
+                500
+            );
+        }
+
+        //====================================================
+        // FIND NEAREST VEHICLE
+        //====================================================
+
+        private Vehicle FindNearestVehicle(
+            GTA.Math.Vector3 position,
+            float maximumDistance)
+        {
+            Vehicle nearestVehicle =
+                null;
+
+            float nearestDistance =
+                maximumDistance;
+
+            Vehicle[] vehicles =
+                World.GetAllVehicles();
+
+            if (vehicles == null)
+            {
+                return null;
+            }
+
+            foreach (Vehicle vehicle
+                in vehicles)
+            {
+                if (vehicle == null ||
+                    !vehicle.Exists() ||
+                    vehicle.IsDead)
+                {
+                    continue;
+                }
+
+                float distance =
+                    position.DistanceTo(
+                        vehicle.Position
+                    );
+
+                if (distance <
+                    nearestDistance)
+                {
+                    nearestDistance =
+                        distance;
+
+                    nearestVehicle =
+                        vehicle;
+                }
+            }
+
+            return nearestVehicle;
+        }
+
+
+
+        //====================================================
         // FIND NEAREST GAS PUMP
         //====================================================
 
@@ -535,6 +808,17 @@ namespace SurvivalNeeds.Systems
                     vehicle.Handle,
                     false
                 );
+
+                Function.Call(
+                    Hash.SET_VEHICLE_ENGINE_ON,
+                    vehicle.Handle,
+                    true,
+                    true,
+                    false
+                );
+
+                vehicle.IsEngineRunning =
+                    true;
             }
         }
 
@@ -1095,6 +1379,23 @@ namespace SurvivalNeeds.Systems
 
             Notification.Show(
                 "~r~Not enough money to refuel."
+            );
+        }
+
+        private void ShowEmptyJerryCanWarning()
+        {
+            if (Game.GameTime -
+                lastEmptyJerryCanWarningTime <
+                2000)
+            {
+                return;
+            }
+
+            lastEmptyJerryCanWarningTime =
+                Game.GameTime;
+
+            Notification.Show(
+                "~r~The jerry can is empty."
             );
         }
 
