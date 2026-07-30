@@ -1,6 +1,7 @@
 ﻿using GTA;
 using GTA.Native;
 using GTA.UI;
+using SurvivalNeeds.Systems;
 using System;
 using System.Collections.Generic;
 using System.Drawing;
@@ -30,20 +31,26 @@ namespace SurvivalNeeds.UI
         private readonly CustomSprite moneyIcon;
         private readonly CustomSprite fuelIcon;
 
+        private readonly VehicleFuelSystem
+            vehicleFuelSystem;
+
         private readonly string shapeCacheFolder;
         private readonly string textCacheFolder;
 
         private readonly Dictionary<string, CustomSprite> shapeSprites =
             new Dictionary<string, CustomSprite>();
-
         private readonly Dictionary<string, CustomSprite> textSprites =
             new Dictionary<string, CustomSprite>();
-
         private readonly Dictionary<string, SizeF> textSpriteSizes =
             new Dictionary<string, SizeF>();
+        private readonly Dictionary<int, CustomSprite> speedometerSprites =
+            new Dictionary<int, CustomSprite>();
 
-        public HUD()
+        public HUD(
+            VehicleFuelSystem vehicleFuelSystem)
         {
+            this.vehicleFuelSystem =
+                vehicleFuelSystem;
             string iconFolder = GetIconFolder();
 
             shapeCacheFolder = Path.Combine(
@@ -339,34 +346,26 @@ namespace SurvivalNeeds.UI
             const float speedometerY = 0.875f;
 
             float speedMph =
-                Math.Abs(vehicle.Speed) * 2.23693629f;
+                Math.Abs(vehicle.Speed) *
+                2.23693629f;
 
-            // Speedometer uses plain rectangles, not PNG sprites.
-            DrawPlainCircle(
+            int displayedSpeed =
+                (int)Math.Round(speedMph);
+
+            DrawSpeedometer(
                 speedometerX,
                 speedometerY,
-                47f,
-                Color.FromArgb(225, 35, 35, 40)
+                displayedSpeed
             );
 
-            DrawPlainCircle(
-                speedometerX,
-                speedometerY,
-                44f,
-                Color.FromArgb(235, 225, 25, 30)
-            );
+            float fuel =
+                GetVehicleFuel(vehicle);
 
-            DrawPlainCircle(
-                speedometerX,
-                speedometerY,
-                38f,
-                Color.FromArgb(235, 12, 12, 16)
-            );
+            float fuelX =
+                speedometerX - 0.065f;
 
-            float fuel = GetVehicleFuel(vehicle);
-
-            float fuelX = speedometerX - 0.065f;
-            float fuelY = speedometerY + 0.072f;
+            float fuelY =
+                speedometerY + 0.072f;
 
             DrawStatusCircle(
                 fuelX,
@@ -376,35 +375,272 @@ namespace SurvivalNeeds.UI
                 Color.FromArgb(225, 135, 35),
                 fuelIcon
             );
-
-            // Draw speed text last so it appears on top.
-            DrawDynamicText(
-                speedMph.ToString("0"),
-                speedometerX,
-                speedometerY - 0.033f,
-                0.62f,
-                Color.White
-            );
-
-            DrawDynamicText(
-                "MPH",
-                speedometerX,
-                speedometerY + 0.012f,
-                0.24f,
-                Color.White
-            );
         }
 
-        private float GetVehicleFuel(Vehicle vehicle)
+        private void DrawSpeedometer(
+    float centerX,
+    float centerY,
+    int speed)
         {
-            try
+            if (speed < 0)
             {
-                return Clamp(vehicle.FuelLevel);
+                speed = 0;
             }
-            catch
+
+            if (speed > 999)
             {
-                return 100f;
+                speed = 999;
             }
+
+            CustomSprite sprite;
+
+            if (!speedometerSprites.TryGetValue(
+                speed,
+                out sprite))
+            {
+                try
+                {
+                    Directory.CreateDirectory(
+                        shapeCacheFolder
+                    );
+
+                    string texturePath =
+                        Path.Combine(
+                            shapeCacheFolder,
+                            "speedometer_" +
+                            speed +
+                            ".png"
+                        );
+
+                    CreateSpeedometerTexture(
+                        texturePath,
+                        speed
+                    );
+
+                    sprite =
+                        new CustomSprite(
+                            texturePath,
+                            new SizeF(94f, 94f),
+                            new PointF(0f, 0f),
+                            Color.White,
+                            0f,
+                            true
+                        );
+
+                    speedometerSprites[speed] =
+                        sprite;
+                }
+                catch
+                {
+                    return;
+                }
+            }
+
+            sprite.Position =
+                new PointF(
+                    centerX * 1280f,
+                    centerY * 720f
+                );
+
+            sprite.Size =
+                new SizeF(
+                    94f,
+                    94f
+                );
+
+            sprite.Color =
+                Color.White;
+
+            sprite.Draw();
+        }
+
+        private void CreateSpeedometerTexture(
+    string texturePath,
+    int speed)
+        {
+            if (File.Exists(texturePath))
+            {
+                return;
+            }
+
+            const int textureSize = 256;
+
+            using (Bitmap bitmap =
+                new Bitmap(
+                    textureSize,
+                    textureSize,
+                    System.Drawing.Imaging
+                        .PixelFormat.Format32bppArgb
+                ))
+            {
+                using (Graphics graphics =
+                    Graphics.FromImage(bitmap))
+                {
+                    graphics.Clear(
+                        Color.Transparent
+                    );
+
+                    graphics.SmoothingMode =
+                        System.Drawing.Drawing2D
+                            .SmoothingMode.AntiAlias;
+
+                    graphics.CompositingQuality =
+                        System.Drawing.Drawing2D
+                            .CompositingQuality.HighQuality;
+
+                    graphics.InterpolationMode =
+                        System.Drawing.Drawing2D
+                            .InterpolationMode.HighQualityBicubic;
+
+                    graphics.PixelOffsetMode =
+                        System.Drawing.Drawing2D
+                            .PixelOffsetMode.HighQuality;
+
+                    // Outer dark border.
+                    using (SolidBrush outerBrush =
+                        new SolidBrush(
+                            Color.FromArgb(
+                                225,
+                                35,
+                                35,
+                                40
+                            )
+                        ))
+                    {
+                        graphics.FillEllipse(
+                            outerBrush,
+                            4f,
+                            4f,
+                            248f,
+                            248f
+                        );
+                    }
+
+                    // Red ring.
+                    using (SolidBrush redBrush =
+                        new SolidBrush(
+                            Color.FromArgb(
+                                245,
+                                225,
+                                25,
+                                30
+                            )
+                        ))
+                    {
+                        graphics.FillEllipse(
+                            redBrush,
+                            13f,
+                            13f,
+                            230f,
+                            230f
+                        );
+                    }
+
+                    // Black center.
+                    using (SolidBrush centerBrush =
+                        new SolidBrush(
+                            Color.FromArgb(
+                                250,
+                                12,
+                                12,
+                                16
+                            )
+                        ))
+                    {
+                        graphics.FillEllipse(
+                            centerBrush,
+                            29f,
+                            29f,
+                            198f,
+                            198f
+                        );
+                    }
+
+                    string speedText =
+                        speed.ToString(
+                            CultureInfo.InvariantCulture
+                        );
+
+                    using (System.Drawing.Font speedFont =
+                        new System.Drawing.Font(
+                            "Arial",
+                            speed >= 100
+                                ? 54f
+                                : 64f,
+                            FontStyle.Regular,
+                            GraphicsUnit.Pixel
+                        ))
+                    using (System.Drawing.Font mphFont =
+                        new System.Drawing.Font(
+                            "Arial",
+                            27f,
+                            FontStyle.Bold,
+                            GraphicsUnit.Pixel
+                        ))
+                    using (SolidBrush textBrush =
+                        new SolidBrush(
+                            Color.White
+                        ))
+                    using (StringFormat format =
+                        new StringFormat())
+                    {
+                        format.Alignment =
+                            StringAlignment.Center;
+
+                        format.LineAlignment =
+                            StringAlignment.Center;
+
+                        graphics.DrawString(
+                            speedText,
+                            speedFont,
+                            textBrush,
+                            new RectangleF(
+                                20f,
+                                55f,
+                                216f,
+                                90f
+                            ),
+                            format
+                        );
+
+                        graphics.DrawString(
+                            "MPH",
+                            mphFont,
+                            textBrush,
+                            new RectangleF(
+                                20f,
+                                143f,
+                                216f,
+                                55f
+                            ),
+                            format
+                        );
+                    }
+                }
+
+                bitmap.Save(
+                    texturePath,
+                    System.Drawing.Imaging
+                        .ImageFormat.Png
+                );
+            }
+        }
+
+        private float GetVehicleFuel(
+            Vehicle vehicle)
+        {
+            if (vehicleFuelSystem == null ||
+                vehicle == null ||
+                !vehicle.Exists())
+            {
+                return 0f;
+            }
+
+            return Clamp(
+                vehicleFuelSystem.GetFuel(
+                    vehicle
+                )
+            );
         }
 
         private string GetIconFolder()
@@ -581,34 +817,46 @@ namespace SurvivalNeeds.UI
             float radiusY =
                 radiusPixels / Screen.Height;
 
-            const int slices = 42;
+            // Smooth enough without exceeding GTA's HUD draw limit.
+            const int slices = 64;
 
-            for (int i = -slices;
-                i <= slices;
+            float sliceHeight =
+                radiusY * 2f / slices;
+
+            for (int i = 0;
+                i < slices;
                 i++)
             {
                 float t =
-                    i / (float)slices;
+                    -1.0f +
+                    ((i + 0.5f) / slices) *
+                    2.0f;
+
+                float inside =
+                    1.0f - t * t;
+
+                if (inside <= 0f)
+                {
+                    continue;
+                }
 
                 float halfWidth =
-                    (float)Math.Sqrt(
-                        1.0f - t * t
-                    );
+                    (float)Math.Sqrt(inside);
 
                 float y =
-                    centerY + t * radiusY;
+                    centerY +
+                    t * radiusY;
 
                 float width =
-                    radiusX * 2f * halfWidth;
-
-                float height =
-                    radiusY * 2f / slices;
+                    radiusX *
+                    2f *
+                    halfWidth;
 
                 DrawRectangle(
                     centerX,
                     y,
                     width,
-                    height,
+                    sliceHeight + 0.0001f,
                     color
                 );
             }
@@ -956,6 +1204,104 @@ namespace SurvivalNeeds.UI
 
             sprite.Size = displaySize;
             sprite.Color = Color.White;
+            sprite.Draw();
+        }
+
+        private void DrawCenteredStaticText(
+    string text,
+    float x,
+    float y,
+    float scale,
+    Color color)
+        {
+            if (string.IsNullOrEmpty(text))
+            {
+                return;
+            }
+
+            string textureKey =
+                "hud_v2|" +
+                text +
+                "|" +
+                scale.ToString(
+                    "R",
+                    CultureInfo.InvariantCulture
+                ) +
+                "|" +
+                color.ToArgb();
+
+            CustomSprite sprite;
+            SizeF displaySize;
+
+            if (!textSprites.TryGetValue(
+                textureKey,
+                out sprite))
+            {
+                try
+                {
+                    Directory.CreateDirectory(
+                        textCacheFolder
+                    );
+
+                    string texturePath =
+                        Path.Combine(
+                            textCacheFolder,
+                            GetSafeTextFileName(
+                                textureKey
+                            ) + ".png"
+                        );
+
+                    displaySize =
+                        CreateHudTextTexture(
+                            texturePath,
+                            text,
+                            scale,
+                            color
+                        );
+
+                    sprite =
+                        new CustomSprite(
+                            texturePath,
+                            displaySize,
+                            new PointF(0f, 0f),
+                            Color.White,
+                            0f,
+                            false
+                        );
+
+                    textSprites[textureKey] =
+                        sprite;
+
+                    textSpriteSizes[textureKey] =
+                        displaySize;
+                }
+                catch
+                {
+                    return;
+                }
+            }
+            else if (!textSpriteSizes.TryGetValue(
+                textureKey,
+                out displaySize))
+            {
+                return;
+            }
+
+            sprite.Position =
+                new PointF(
+                    x * 1280f -
+                        displaySize.Width / 2f,
+
+                    y * 720f -
+                        displaySize.Height / 2f
+                );
+
+            sprite.Size =
+                displaySize;
+
+            sprite.Color =
+                Color.White;
+
             sprite.Draw();
         }
 

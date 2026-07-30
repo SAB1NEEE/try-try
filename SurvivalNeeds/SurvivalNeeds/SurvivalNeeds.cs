@@ -11,7 +11,6 @@ using SurvivalNeeds.VehicleStorage;
 using SurvivalNeeds.Phone;
 using SurvivalNeeds.Vendors;
 using SurvivalNeeds.BankingSystem;
-using SurvivalNeeds.Police;
 using System;
 using System.Windows.Forms;
 
@@ -31,6 +30,9 @@ namespace SurvivalNeeds
         private readonly MoneySystem money =
             new MoneySystem();
 
+        private readonly VehicleFuelSystem
+            vehicleFuelSystem;
+
         private readonly SurvivalEffectsSystem
             survivalEffects =
                 new SurvivalEffectsSystem();
@@ -38,9 +40,8 @@ namespace SurvivalNeeds
         private DeathPenaltySystem
             deathPenaltySystem;
 
-        private ArrestSystem arrestSystem;
-
-        private bool speedingAlreadyHandled = false;
+        private bool speedingAlreadyHandled =
+            false;
 
         private readonly AnimationSystem
             animationSystem =
@@ -90,7 +91,7 @@ namespace SurvivalNeeds
             personalVehiclePhoneSystem;
 
         private VendorsManager
-        vendorsManager;
+            vendorsManager;
 
         private GunStore
             gunStore;
@@ -101,12 +102,11 @@ namespace SurvivalNeeds
         private GunStoreMenu
             gunStoreMenu;
 
-        private readonly HUD hud =
-            new HUD();
+        private readonly HUD hud;
 
         private readonly BankAccount
             bankAccount =
-        new BankAccount();
+                new BankAccount();
 
         private ATMMenu
             atmMenu;
@@ -151,20 +151,23 @@ namespace SurvivalNeeds
 
             Interval = 0;
 
+            vehicleFuelSystem =
+            new VehicleFuelSystem(
+                    money,
+                    vehicleInventoryManager
+                );
+            hud =
+                new HUD(
+                    vehicleFuelSystem
+                );
+
             try
             {
                 LoadGame();
 
                 weaponWheelSyncSystem =
                     new WeaponWheelSyncSystem(
-                    inventory
-                );
-
-                arrestSystem =
-                    new ArrestSystem(
-                    money,
-                    inventory,
-                    saveSystem
+                        inventory
                     );
 
                 inventoryMenu =
@@ -181,6 +184,7 @@ namespace SurvivalNeeds
                         inventory,
                         money
                     );
+
                 deathPenaltySystem =
                     new DeathPenaltySystem(
                         inventory,
@@ -190,16 +194,15 @@ namespace SurvivalNeeds
                         stress
                     );
 
-                
                 personalVehiclePhoneSystem =
                     new PersonalVehiclePhoneSystem(
-                    vehicleInventoryManager
+                        vehicleInventoryManager
                     );
 
                 vendorsManager =
                     new VendorsManager(
-                    inventory,
-                    money
+                        inventory,
+                        money
                     );
 
                 gunStore =
@@ -210,17 +213,17 @@ namespace SurvivalNeeds
 
                 gunStoreMenu =
                     new GunStoreMenu(
-                    gunStore,
-                    inventory,
-                    vehicleInventoryManager,
-                    money,
-                    SaveGame
+                        gunStore,
+                        inventory,
+                        vehicleInventoryManager,
+                        money,
+                        SaveGame
                     );
 
                 atmMenu =
                     new ATMMenu(
-                    bankAccount,
-                    money
+                        bankAccount,
+                        money
                     );
 
                 atmSystem =
@@ -278,10 +281,10 @@ namespace SurvivalNeeds
         //====================================================
 
         private void OnTick(
-    object sender,
-    EventArgs e)
+            object sender,
+            EventArgs e)
         {
-            // Disable the vanilla Ammu-Nation shop script.
+            // Disable GTA's default Ammu-Nation shop.
             Function.Call(
                 Hash.TERMINATE_ALL_SCRIPTS_WITH_THIS_NAME,
                 "gunclub_shop"
@@ -292,7 +295,9 @@ namespace SurvivalNeeds
             vehicleInventoryManager.Update();
             weaponWheelSyncSystem?.Sync();
             deathPenaltySystem?.Update();
-            arrestSystem?.Update();
+
+            // Custom vehicle fuel consumption and refueling.
+            vehicleFuelSystem?.Update();
 
             UpdateSurvival();
             UpdateAutoSave();
@@ -348,8 +353,6 @@ namespace SurvivalNeeds
                 return;
             }
 
-            // When open, GunStoreMenu.Update handles
-            // input and draws the interface.
             if (gunStoreMenu.Visible)
             {
                 gunStoreMenu.Update();
@@ -361,12 +364,13 @@ namespace SurvivalNeeds
 
             if (shouldOpen)
             {
-                // Close the normal inventory if it is open.
                 if (inventoryMenu != null &&
                     inventoryMenu.Visible)
                 {
                     inventoryMenu.Toggle();
-                    playerInventoryOpen = false;
+
+                    playerInventoryOpen =
+                        false;
                 }
 
                 gunStoreMenu.Open();
@@ -432,11 +436,11 @@ namespace SurvivalNeeds
             try
             {
                 saveSystem.Save(
-                hunger.Value,
-                thirst.Value,
-                stress.Value,
-                money.Cash,
-                bankAccount
+                    hunger.Value,
+                    thirst.Value,
+                    stress.Value,
+                    money.Cash,
+                    bankAccount
                 );
 
                 saveManager.SaveInventory(
@@ -445,6 +449,8 @@ namespace SurvivalNeeds
 
                 vehicleInventoryManager
                     .SaveAll();
+
+                vehicleFuelSystem?.SaveAll();
             }
             catch (Exception ex)
             {
@@ -544,9 +550,6 @@ namespace SurvivalNeeds
                 return;
             }
 
-            /*
-             * Only the driver can claim the vehicle.
-             */
             if (vehicle.Driver == null ||
                 !vehicle.Driver.Exists() ||
                 vehicle.Driver.Handle !=
@@ -814,7 +817,6 @@ namespace SurvivalNeeds
             }
         }
 
-
         //====================================================
         // DRAW MENUS
         //====================================================
@@ -839,6 +841,5 @@ namespace SurvivalNeeds
                 vehicleStorageMenu.Draw();
             }
         }
-
     }
 }

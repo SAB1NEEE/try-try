@@ -1,5 +1,6 @@
 ﻿using GTA;
 using GTA.Math;
+using GTA.Native;
 using GTA.UI;
 using SurvivalNeeds.Inventory;
 using SurvivalNeeds.Systems;
@@ -17,6 +18,11 @@ namespace SurvivalNeeds.Loot
         private int searchStartTime = 0;
 
         private const int SearchDuration = 3000;
+        private const string SearchAnimDictionary =
+            "amb@prop_human_bum_bin@base";
+
+        private const string SearchAnimName =
+            "base";
         private const float SearchDistance = 2.2f;
 
         private Prop currentProp;
@@ -168,9 +174,31 @@ namespace SurvivalNeeds.Loot
                 return;
             }
 
+            Ped player =
+                Game.Player.Character;
+
+            if (player == null ||
+                !player.Exists())
+            {
+                return;
+            }
+
             searching = true;
             currentProp = prop;
             searchStartTime = Game.GameTime;
+
+            Vector3 direction =
+                prop.Position -
+                player.Position;
+
+            player.Heading =
+                Function.Call<float>(
+                    Hash.GET_HEADING_FROM_VECTOR_2D,
+                    direction.X,
+                    direction.Y
+                );
+
+            StartSearchAnimation();
         }
 
         //====================================================
@@ -195,6 +223,8 @@ namespace SurvivalNeeds.Loot
                 CancelSearch();
                 return;
             }
+
+            DisableSearchControls();
 
             float playerDistance =
                 player.Position.DistanceTo(
@@ -236,6 +266,8 @@ namespace SurvivalNeeds.Loot
                 Vector3 searchedPosition =
                     currentProp.Position;
 
+                StopSearchAnimation();
+
                 GiveLoot();
 
                 AddSearchedTrashPosition(
@@ -254,9 +286,66 @@ namespace SurvivalNeeds.Loot
 
         private void CancelSearch()
         {
+            StopSearchAnimation();
+
             searching = false;
             currentProp = null;
             ePressedLastFrame = true;
+        }
+
+        //====================================================
+        // Disable Controls While Searching
+        //====================================================
+
+        private void DisableSearchControls()
+        {
+            Game.DisableControlThisFrame(
+                GTA.Control.MoveUpOnly
+            );
+
+            Game.DisableControlThisFrame(
+                GTA.Control.MoveDownOnly
+            );
+
+            Game.DisableControlThisFrame(
+                GTA.Control.MoveLeftOnly
+            );
+
+            Game.DisableControlThisFrame(
+                GTA.Control.MoveRightOnly
+            );
+
+            Game.DisableControlThisFrame(
+                GTA.Control.Sprint
+            );
+
+            Game.DisableControlThisFrame(
+                GTA.Control.Jump
+            );
+
+            Game.DisableControlThisFrame(
+                GTA.Control.Attack
+            );
+
+            Game.DisableControlThisFrame(
+                GTA.Control.Aim
+            );
+
+            Game.DisableControlThisFrame(
+                GTA.Control.MeleeAttack1
+            );
+
+            Game.DisableControlThisFrame(
+                GTA.Control.MeleeAttack2
+            );
+
+            Game.DisableControlThisFrame(
+                GTA.Control.SelectWeapon
+            );
+
+            Game.DisableControlThisFrame(
+                GTA.Control.Enter
+            );
         }
 
         //====================================================
@@ -491,6 +580,70 @@ namespace SurvivalNeeds.Loot
             }
 
             return closest;
+        }
+
+        private bool LoadAnimationDictionary(
+            string dictionary)
+        {
+            if (Function.Call<bool>(
+                Hash.HAS_ANIM_DICT_LOADED,
+                dictionary))
+            {
+                return true;
+            }
+
+            Function.Call(
+                Hash.REQUEST_ANIM_DICT,
+                dictionary
+            );
+
+            return Function.Call<bool>(
+                Hash.HAS_ANIM_DICT_LOADED,
+                dictionary
+            );
+        }
+
+        private void StartSearchAnimation()
+        {
+            Ped player =
+                Game.Player.Character;
+
+            if (player == null ||
+                !player.Exists())
+            {
+                return;
+            }
+
+            if (!LoadAnimationDictionary(
+                SearchAnimDictionary))
+            {
+                return;
+            }
+
+            player.Task.PlayAnimation(
+                SearchAnimDictionary,
+                SearchAnimName,
+                8.0f,
+                -1,
+                AnimationFlags.Loop
+            );
+        }
+
+        private void StopSearchAnimation()
+        {
+            Ped player =
+                Game.Player.Character;
+
+            if (player == null ||
+                !player.Exists())
+            {
+                return;
+            }
+
+            player.Task.ClearAnimation(
+                SearchAnimDictionary,
+                SearchAnimName
+            );
         }
 
         //====================================================

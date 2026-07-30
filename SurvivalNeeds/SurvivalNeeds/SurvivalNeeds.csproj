@@ -75,14 +75,7 @@
     <Compile Include="Inventory\ItemCategory.cs" />
     <Compile Include="Inventory\ItemDataBase.cs" />
     <Compile Include="Loot\LootSystem.cs" />
-    <Compile Include="Managers\ShopManager.cs" />
     <Compile Include="Phone\PersonalVehiclePhoneSystem.cs" />
-    <Compile Include="Police\ArrestSystem.cs" />
-    <Compile Include="Police\BustedScreen.cs" />
-    <Compile Include="Police\ConfiscationSystem.cs" />
-    <Compile Include="Police\EvidenceSaveSystem.cs" />
-    <Compile Include="Police\HandcuffSystem.cs" />
-    <Compile Include="Police\PoliceSpawn.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="SurvivalNeeds.cs" />
     <Compile Include="Systems\AnimationSystem.cs" />
@@ -94,6 +87,7 @@
     <Compile Include="Systems\StressSystem.cs" />
     <Compile Include="Systems\SurvivalEffectsSystem.cs" />
     <Compile Include="Systems\ThirstSystem.cs" />
+    <Compile Include="Systems\VehicleFuelSystem.cs" />
     <Compile Include="Systems\WeaponWheelSyncSystem.cs" />
     <Compile Include="UI\HUD.cs" />
     <Compile Include="UI\VehicleStorageMenu.cs" />
