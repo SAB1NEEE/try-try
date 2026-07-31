@@ -62,6 +62,7 @@
     <Compile Include="Apartments\ApartmentOwnershipManager.cs" />
     <Compile Include="Apartments\ApartmentStorageManager.cs" />
     <Compile Include="Apartments\ApartmentStorageMenu.cs" />
+    <Compile Include="Apartments\WeeklyRentalManager.cs" />
     <Compile Include="Assets\ItemLibrary.cs" />
     <Compile Include="Assets\PropLibrary.cs" />
     <Compile Include="BankingSystem\ATMLocations.cs" />

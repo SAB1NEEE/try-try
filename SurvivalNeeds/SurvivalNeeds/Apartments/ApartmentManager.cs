@@ -7,6 +7,7 @@ using SurvivalNeeds.Systems;
 using System;
 using System.Collections.Generic;
 using System.Windows.Forms;
+using SurvivalNeeds.BankingSystem;
 
 namespace SurvivalNeeds.Apartments
 {
@@ -39,6 +40,9 @@ namespace SurvivalNeeds.Apartments
         private readonly ApartmentOwnershipManager
             ownershipManager;
 
+        private readonly WeeklyRentalManager
+            weeklyRentalManager;
+
         private readonly Func<string>
             getCurrentProfileId;
 
@@ -62,17 +66,21 @@ namespace SurvivalNeeds.Apartments
         private bool
             ePressedLastFrame;
 
+        private bool
+            cPressedLastFrame;
+
         private int
     wakeNeedsResetUntil;
 
         public ApartmentManager(
-            InventoryManager playerInventory,
-            HungerSystem hunger,
-            ThirstSystem thirst,
-            StressSystem stress,
-            MoneySystem money,
-            Func<string> getCurrentProfileId,
-            Action saveGame)
+    InventoryManager playerInventory,
+    HungerSystem hunger,
+    ThirstSystem thirst,
+    StressSystem stress,
+    MoneySystem money,
+    BankAccount bankAccount,
+    Func<string> getCurrentProfileId,
+    Action saveGame)
         {
             this.playerInventory =
                 playerInventory;
@@ -99,6 +107,10 @@ namespace SurvivalNeeds.Apartments
                 new ApartmentStorageManager();
             ownershipManager =
                 new ApartmentOwnershipManager();
+            weeklyRentalManager =
+                new WeeklyRentalManager(
+                    bankAccount
+                );
 
             CreateApartments();
 
@@ -142,7 +154,7 @@ namespace SurvivalNeeds.Apartments
 
                     ApartmentClass.LowEnd,
 
-                    25000,
+                    35000,
 
                     // Exterior entrance
                     new Vector3(
@@ -186,7 +198,7 @@ namespace SurvivalNeeds.Apartments
             );
 
             //================================================
-            // NEW LOW-END APARTMENT
+            // STRAWBERRY APARTMENT
             //================================================
 
             apartments.Add(
@@ -204,6 +216,171 @@ namespace SurvivalNeeds.Apartments
                         -112.7480f,
                         -1479.199f,
                         36.8371f
+                    ),
+
+                    180f,
+
+                    // Interior spawn
+                    new Vector3(
+                        151.36f,
+                        -1007.88f,
+                        -99.00f
+                    ),
+
+                    180f,
+
+                    // Interior exit
+                    new Vector3(
+                        151.45f,
+                        -1007.66f,
+                        -99.00f
+                    ),
+
+                    // Bed
+                    new Vector3(
+                        154.05f,
+                        -1004.65f,
+                        -99.00f
+                    ),
+
+                    // Storage
+                    new Vector3(
+                        151.90f,
+                        -1002.80f,
+                        -99.00f
+                    )
+                )
+            );
+
+            //================================================
+            // BAYVIEW LODGE APARTMENT
+            //================================================
+
+            apartments.Add(
+                new Apartment(
+                    "BAYVIEW_LODGE",
+
+                    "Bayview Lodge Apartment",
+
+                    ApartmentClass.LowEnd,
+
+                    15000,
+
+                    // Exterior entrance
+                    new Vector3(
+                        -693.9824f,
+                        5761.6108f,
+                        17.3010f
+                    ),
+
+                    180f,
+
+                    // Reuse the current low-end interior
+                    new Vector3(
+                        151.36f,
+                        -1007.88f,
+                        -99.00f
+                    ),
+
+                    180f,
+
+                    // Interior exit
+                    new Vector3(
+                        151.45f,
+                        -1007.66f,
+                        -99.00f
+                    ),
+
+                    // Bed
+                    new Vector3(
+                        154.05f,
+                        -1004.65f,
+                        -99.00f
+                    ),
+
+                    // Storage
+                    new Vector3(
+                        151.90f,
+                        -1002.80f,
+                        -99.00f
+                    )
+                )
+            );
+
+            //================================================
+            // PALETO HEIGHTS APARTMENT
+            //================================================
+
+            apartments.Add(
+    new Apartment(
+        "PALETO_HEIGHTS",
+
+        "Paleto Heights Apartment",
+
+        ApartmentClass.MidEnd,
+
+        250000,
+
+        // Exterior entrance
+        new Vector3(
+            -356.6381f,
+            6207.1021f,
+            31.6073f
+        ),
+
+        180f,
+
+        // Interior spawn
+        new Vector3(
+            346.5002f,
+            -1012.609f,
+            -99.4162f
+        ),
+
+        180f,
+
+        // Interior exit
+        new Vector3(
+            346.5002f,
+            -1012.609f,
+            -99.4162f
+        ),
+
+        // Bed
+        new Vector3(
+            349.8131f,
+            -996.3005f,
+            -99.4849f
+        ),
+
+        // Storage
+        new Vector3(
+            343.9771f,
+            -1002.015f,
+            -99.6462f
+        )
+    )
+);
+
+            //================================================
+            // STRAWBERRY RENT HOUSE
+            //================================================
+
+            apartments.Add(
+                new Apartment(
+                    "STRAWBERRY_RENT_HOUSE",
+
+                    "Strawberry Rent House",
+
+                    ApartmentClass.LowEnd,
+
+                    0,
+
+                    // Exterior entrance
+                    new Vector3(
+                        -127.225f,
+                        -1457.274f,
+                        37.4969f
                     ),
 
                     180f,
@@ -286,6 +463,22 @@ namespace SurvivalNeeds.Apartments
                 blip.IsShortRange =
                     false;
 
+                blip.Scale =
+                    0.8f;
+
+                blip.IsShortRange =
+                    false;
+
+                Function.Call(
+                    Hash.SET_BLIP_DISPLAY,
+                    blip.Handle,
+                    3
+                );
+
+                apartmentBlips.Add(
+                    blip
+                );
+
                 apartmentBlips.Add(
                     blip
                 );
@@ -348,6 +541,10 @@ namespace SurvivalNeeds.Apartments
                 Game.IsKeyPressed(
                     Keys.E
                 );
+            bool cPressed =
+                Game.IsKeyPressed(
+                    Keys.C
+                );
 
             if (storageMenu != null &&
                 storageMenu.Visible)
@@ -363,6 +560,9 @@ namespace SurvivalNeeds.Apartments
                 ePressedLastFrame =
                     ePressed;
 
+                cPressedLastFrame =
+                    cPressed;
+
                 return;
             }
 
@@ -370,7 +570,8 @@ namespace SurvivalNeeds.Apartments
             {
                 UpdateExterior(
                     player,
-                    ePressed
+                    ePressed,
+                    cPressed
                 );
             }
             else
@@ -391,7 +592,8 @@ namespace SurvivalNeeds.Apartments
 
         private void UpdateExterior(
     Ped player,
-    bool ePressed)
+    bool ePressed,
+    bool cPressed)
         {
             Apartment nearbyApartment =
                 FindNearbyExterior(
@@ -404,9 +606,10 @@ namespace SurvivalNeeds.Apartments
             }
 
             float markerOffset =
-                nearbyApartment.Id == "STRAWBERRY_APARTMENT"
-                ? -0.95f
-                : 0f;
+                nearbyApartment.Id ==
+                    "STRAWBERRY_APARTMENT"
+                        ? -0.95f
+                        : 0f;
 
             DrawMarker(
                 nearbyApartment.ExteriorEntrance,
@@ -415,6 +618,20 @@ namespace SurvivalNeeds.Apartments
 
             string profileId =
                 GetProfileId();
+
+            if (IsRentalProperty(
+                nearbyApartment))
+            {
+                UpdateRentalPropertyExterior(
+                    nearbyApartment,
+                    player,
+                    profileId,
+                    ePressed,
+                    cPressed
+                );
+
+                return;
+            }
 
             bool isOwned =
                 ownershipManager.IsOwned(
@@ -472,6 +689,219 @@ namespace SurvivalNeeds.Apartments
                 nearbyApartment,
                 profileId
             );
+        }
+
+        //====================================================
+        // CHECK RENTAL PROPERTY
+        //====================================================
+
+        private bool IsRentalProperty(
+            Apartment apartment)
+        {
+            return apartment != null &&
+                   apartment.Id ==
+                       "STRAWBERRY_RENT_HOUSE";
+        }
+
+        //====================================================
+        // UPDATE RENTAL PROPERTY
+        //====================================================
+
+        private void UpdateRentalPropertyExterior(
+            Apartment apartment,
+            Ped player,
+            string profileId,
+            bool ePressed,
+            bool cPressed)
+        {
+            bool permanentlyOwned =
+                weeklyRentalManager
+                    .IsPermanentlyOwned(
+                        profileId,
+                        apartment.Id
+                    );
+
+            bool rented =
+                weeklyRentalManager.IsRented(
+                    profileId,
+                    apartment.Id
+                );
+
+            if (permanentlyOwned)
+            {
+                GTA.UI.Screen.ShowHelpTextThisFrame(
+                    apartment.Name +
+                    "~n~~g~Permanently owned" +
+                    "~n~Press ~INPUT_CONTEXT~ to enter."
+                );
+
+                if (ePressed &&
+                    !ePressedLastFrame)
+                {
+                    EnterApartment(
+                        apartment,
+                        player
+                    );
+                }
+
+                return;
+            }
+
+            if (rented)
+            {
+                int completedPayments =
+                    weeklyRentalManager
+                        .GetCompletedPayments(
+                            profileId,
+                            apartment.Id
+                        );
+
+                int totalPaid =
+                    weeklyRentalManager
+                        .GetTotalPaid(
+                            profileId,
+                            apartment.Id
+                        );
+
+                DateTime dueDate =
+                    weeklyRentalManager.GetDueDate(
+                        profileId,
+                        apartment.Id
+                    );
+
+                GTA.UI.Screen.ShowHelpTextThisFrame(
+                    apartment.Name +
+                    "~n~~b~Currently rented" +
+                    "~n~Progress: " +
+                    completedPayments +
+                    " / " +
+                    WeeklyRentalManager
+                        .PaymentsRequiredForOwnership +
+                    " weeks" +
+                    "~n~Total paid: $" +
+                    totalPaid.ToString("N0") +
+                    "~n~Next payment: " +
+                    dueDate.ToString("MMM d, yyyy") +
+                    "~n~Press ~INPUT_CONTEXT~ to enter." +
+                    "~n~Press ~y~C~s~ to cancel rent."
+                );
+
+                if (ePressed &&
+                    !ePressedLastFrame)
+                {
+                    EnterApartment(
+                        apartment,
+                        player
+                    );
+
+                    return;
+                }
+
+                if (cPressed &&
+                    !cPressedLastFrame)
+                {
+                    CancelRental(
+                        apartment,
+                        profileId
+                    );
+                }
+
+                return;
+            }
+
+            GTA.UI.Screen.ShowHelpTextThisFrame(
+                apartment.Name +
+                "~n~Weekly rent: ~g~$" +
+                WeeklyRentalManager
+                    .WeeklyRent
+                    .ToString("N0") +
+                "~s~ from bank" +
+                "~n~Rent-to-own: " +
+                WeeklyRentalManager
+                    .PaymentsRequiredForOwnership +
+                " weeks" +
+                "~n~Total cost: $36,000" +
+                "~n~Press ~INPUT_CONTEXT~ to start renting."
+            );
+
+            if (ePressed &&
+                !ePressedLastFrame)
+            {
+                StartRental(
+                    apartment,
+                    profileId
+                );
+            }
+        }
+
+        //====================================================
+        // START RENTAL
+        //====================================================
+
+        private void StartRental(
+            Apartment apartment,
+            string profileId)
+        {
+            if (apartment == null)
+            {
+                return;
+            }
+
+            string message;
+
+            bool success =
+                weeklyRentalManager.StartRental(
+                    profileId,
+                    apartment.Id,
+                    out message
+                );
+
+            Notification.Show(
+                success
+                    ? "~g~" + message
+                    : "~r~" + message,
+                false
+            );
+
+            if (success)
+            {
+                saveGame?.Invoke();
+            }
+        }
+
+        //====================================================
+        // CANCEL RENTAL
+        //====================================================
+
+        private void CancelRental(
+            Apartment apartment,
+            string profileId)
+        {
+            if (apartment == null)
+            {
+                return;
+            }
+
+            string message;
+
+            bool success =
+                weeklyRentalManager.CancelRental(
+                    profileId,
+                    apartment.Id,
+                    out message
+                );
+
+            Notification.Show(
+                success
+                    ? "~y~" + message
+                    : "~r~" + message,
+                false
+            );
+
+            if (success)
+            {
+                saveGame?.Invoke();
+            }
         }
 
         //====================================================
@@ -718,8 +1148,8 @@ namespace SurvivalNeeds.Apartments
         //====================================================
 
         private void EnterApartment(
-            Apartment apartment,
-            Ped player)
+    Apartment apartment,
+    Ped player)
         {
             if (apartment == null ||
                 player == null ||
@@ -737,12 +1167,60 @@ namespace SurvivalNeeds.Apartments
                 600
             );
 
-            Function.Call(
-                Hash.REQUEST_COLLISION_AT_COORD,
-                apartment.InteriorSpawn.X,
-                apartment.InteriorSpawn.Y,
-                apartment.InteriorSpawn.Z
-            );
+            if (apartment.Id ==
+                "PALETO_HEIGHTS")
+            {
+                int interiorId =
+                    Function.Call<int>(
+                        Hash.GET_INTERIOR_AT_COORDS,
+                        347.2686f,
+                        -999.2955f,
+                        -99.1962f
+                    );
+
+                if (interiorId != 0)
+                {
+                    Function.Call(
+                        Hash.PIN_INTERIOR_IN_MEMORY,
+                        interiorId
+                    );
+
+                    Function.Call(
+                        Hash.ACTIVATE_INTERIOR_ENTITY_SET,
+                        interiorId,
+                        "Apart_Mid_Strip_A"
+                    );
+
+                    Function.Call(
+                        Hash.REFRESH_INTERIOR,
+                        interiorId
+                    );
+                }
+
+                Function.Call(
+                    Hash.REQUEST_COLLISION_AT_COORD,
+                    apartment.InteriorSpawn.X,
+                    apartment.InteriorSpawn.Y,
+                    apartment.InteriorSpawn.Z
+                );
+
+                Script.Wait(
+                    1500
+                );
+            }
+            else
+            {
+                Function.Call(
+                    Hash.REQUEST_COLLISION_AT_COORD,
+                    apartment.InteriorSpawn.X,
+                    apartment.InteriorSpawn.Y,
+                    apartment.InteriorSpawn.Z
+                );
+
+                Script.Wait(
+                    500
+                );
+            }
 
             player.Position =
                 apartment.InteriorSpawn;
@@ -754,7 +1232,7 @@ namespace SurvivalNeeds.Apartments
                 apartment;
 
             Script.Wait(
-                300
+                500
             );
 
             Function.Call(
@@ -989,6 +1467,8 @@ namespace SurvivalNeeds.Apartments
             storageManager.SaveAll();
 
             ownershipManager.SaveAll();
+
+            weeklyRentalManager.SaveAll();
         }
 
         //====================================================

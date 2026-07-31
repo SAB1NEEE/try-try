@@ -365,6 +365,12 @@ namespace SurvivalNeeds.Vendors
                     false
                 );
 
+                Function.Call(
+                    Hash.SET_BLIP_DISPLAY,
+                    blip.Handle,
+                    3
+                );
+
                 SetBlipName(
                     blip,
                     vendor.Name

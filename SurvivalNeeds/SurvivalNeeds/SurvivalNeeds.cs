@@ -242,12 +242,14 @@ namespace SurvivalNeeds
                     );
 
                 apartmentManager =
+    apartmentManager =
     new ApartmentManager(
         inventory,
         hunger,
         thirst,
         stress,
         money,
+        bankAccount,
         GetCurrentCharacterProfileId,
         () => SaveGame()
     );

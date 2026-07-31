@@ -230,15 +230,8 @@ namespace SurvivalNeeds.Apartments
             string baseDirectory =
                 AppDomain.CurrentDomain.BaseDirectory;
 
-            string scriptsFolder =
-                Path.Combine(
-                    baseDirectory,
-                    "scripts"
-                );
-
             string survivalNeedsFolder =
                 Path.Combine(
-                    scriptsFolder,
                     "SurvivalNeeds"
                 );
 
