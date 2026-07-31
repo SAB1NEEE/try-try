@@ -30,8 +30,14 @@ namespace SurvivalNeeds.Apartments
         private readonly StressSystem
             stress;
 
+        private readonly MoneySystem
+            money;
+
         private readonly ApartmentStorageManager
             storageManager;
+
+        private readonly ApartmentOwnershipManager
+            ownershipManager;
 
         private readonly Func<string>
             getCurrentProfileId;
@@ -56,11 +62,15 @@ namespace SurvivalNeeds.Apartments
         private bool
             ePressedLastFrame;
 
+        private int
+    wakeNeedsResetUntil;
+
         public ApartmentManager(
             InventoryManager playerInventory,
             HungerSystem hunger,
             ThirstSystem thirst,
             StressSystem stress,
+            MoneySystem money,
             Func<string> getCurrentProfileId,
             Action saveGame)
         {
@@ -76,6 +86,9 @@ namespace SurvivalNeeds.Apartments
             this.stress =
                 stress;
 
+            this.money =
+                money;
+
             this.getCurrentProfileId =
                 getCurrentProfileId;
 
@@ -84,6 +97,8 @@ namespace SurvivalNeeds.Apartments
 
             storageManager =
                 new ApartmentStorageManager();
+            ownershipManager =
+                new ApartmentOwnershipManager();
 
             CreateApartments();
 
@@ -171,24 +186,24 @@ namespace SurvivalNeeds.Apartments
             );
 
             //================================================
-            // CARSON AVENUE APARTMENT
+            // NEW LOW-END APARTMENT
             //================================================
 
             apartments.Add(
                 new Apartment(
-                    "CARSON_APARTMENT",
+                    "STRAWBERRY_APARTMENT",
 
-                    "Carson Avenue Apartment",
+                    "Strawberry Apartment",
 
                     ApartmentClass.LowEnd,
 
                     25000,
 
-                    // Temporary exterior entrance
+                    // Exterior entrance
                     new Vector3(
-                        -24.40f,
-                        -1440.35f,
-                        30.65f
+                        -112.7480f,
+                        -1479.199f,
+                        36.8371f
                     ),
 
                     180f,
@@ -225,6 +240,8 @@ namespace SurvivalNeeds.Apartments
                 )
             );
         }
+
+
 
         //====================================================
         // CREATE MAP BLIPS
@@ -311,6 +328,22 @@ namespace SurvivalNeeds.Apartments
                 return;
             }
 
+            if (Game.GameTime <=
+                wakeNeedsResetUntil)
+            {
+                hunger?.Set(
+                    20f
+                );
+
+                thirst?.Set(
+                    20f
+                );
+
+                stress?.Set(
+                    0f
+                );
+            }
+
             bool ePressed =
                 Game.IsKeyPressed(
                     Keys.E
@@ -357,8 +390,8 @@ namespace SurvivalNeeds.Apartments
         //====================================================
 
         private void UpdateExterior(
-            Ped player,
-            bool ePressed)
+    Ped player,
+    bool ePressed)
         {
             Apartment nearbyApartment =
                 FindNearbyExterior(
@@ -370,30 +403,174 @@ namespace SurvivalNeeds.Apartments
                 return;
             }
 
+            float markerOffset =
+                nearbyApartment.Id == "STRAWBERRY_APARTMENT"
+                ? -0.95f
+                : 0f;
+
             DrawMarker(
-                nearbyApartment.ExteriorEntrance
+                nearbyApartment.ExteriorEntrance,
+                markerOffset
             );
+
+            string profileId =
+                GetProfileId();
+
+            bool isOwned =
+                ownershipManager.IsOwned(
+                    profileId,
+                    nearbyApartment.Id
+                );
 
             string className =
                 nearbyApartment
                     .GetClassDisplayName();
 
-            GTA.UI.Screen.ShowHelpTextThisFrame(
-                "Press ~INPUT_CONTEXT~ to enter " +
-                nearbyApartment.Name +
-                ".~n~" +
-                className +
-                " apartment."
-            );
+            if (isOwned)
+            {
+                GTA.UI.Screen.ShowHelpTextThisFrame(
+                    nearbyApartment.Name +
+                    "~n~" +
+                    className +
+                    " apartment" +
+                    "~n~~g~Owned" +
+                    "~n~Press ~INPUT_CONTEXT~ to enter."
+                );
+            }
+            else
+            {
+                GTA.UI.Screen.ShowHelpTextThisFrame(
+                    nearbyApartment.Name +
+                    "~n~" +
+                    className +
+                    " apartment" +
+                    "~n~Price: ~g~$" +
+                    nearbyApartment.Price.ToString(
+                        "N0"
+                    ) +
+                    "~s~~n~Press ~INPUT_CONTEXT~ to purchase."
+                );
+            }
 
-            if (ePressed &&
-                !ePressedLastFrame)
+            if (!ePressed ||
+                ePressedLastFrame)
+            {
+                return;
+            }
+
+            if (isOwned)
             {
                 EnterApartment(
                     nearbyApartment,
                     player
                 );
+
+                return;
             }
+
+            PurchaseApartment(
+                nearbyApartment,
+                profileId
+            );
+        }
+
+        //====================================================
+        // PURCHASE APARTMENT
+        //====================================================
+
+        private void PurchaseApartment(
+            Apartment apartment,
+            string profileId)
+        {
+            if (apartment == null ||
+                money == null)
+            {
+                return;
+            }
+
+            if (ownershipManager.IsOwned(
+                profileId,
+                apartment.Id))
+            {
+                Notification.Show(
+                    "~y~You already own this apartment.",
+                    false
+                );
+
+                return;
+            }
+
+            if (money.Cash <
+                apartment.Price)
+            {
+                int missingAmount =
+                    apartment.Price -
+                    money.Cash;
+
+                Notification.Show(
+                    "~r~You cannot afford this apartment.~n~" +
+                    "You need $" +
+                    missingAmount.ToString(
+                        "N0"
+                    ) +
+                    " more.",
+                    false
+                );
+
+                return;
+            }
+
+            bool paymentSucceeded =
+    money.SpendMoney(
+        apartment.Price
+    );
+
+            if (!paymentSucceeded)
+            {
+                Notification.Show(
+                    "~r~Apartment purchase failed.",
+                    false
+                );
+
+                return;
+            }
+
+            bool ownershipAdded =
+                ownershipManager.AddOwnership(
+                    profileId,
+                    apartment.Id
+                );
+
+            if (!ownershipAdded)
+            {
+                /*
+                 * Ownership was not added, so return the money.
+                 * This protects the player from losing cash if
+                 * saving ownership unexpectedly fails.
+                 */
+                money.AddMoney(
+                    apartment.Price
+                );
+
+                Notification.Show(
+                    "~r~Apartment purchase failed.",
+                    false
+                );
+
+                return;
+            }
+
+            saveGame?.Invoke();
+
+            Notification.Show(
+                "~g~Apartment purchased!~n~" +
+                apartment.Name +
+                "~n~Price: $" +
+                apartment.Price.ToString(
+                    "N0"
+                ),
+                false
+            );
         }
 
         //====================================================
@@ -630,14 +807,30 @@ namespace SurvivalNeeds.Apartments
                     .ExteriorEntrance.Z
             );
 
-            player.Position =
-                apartmentBeingLeft
-                    .ExteriorEntrance +
-                new Vector3(
-                    0f,
-                    -1.5f,
-                    0f
-                );
+            if (apartmentBeingLeft.Id == "PINK_CAGE")
+            {
+                player.Position =
+                    new Vector3(
+                        329.5549f,
+                        -224.8002f,
+                        58.2241f
+                    );
+            }
+            else if (
+                apartmentBeingLeft.Id == "STRAWBERRY_APARTMENT")
+            {
+                player.Position =
+                    new Vector3(
+                        -112.7480f,
+                        -1479.199f,
+                        36.8371f
+                    );
+            }
+            else
+            {
+                player.Position =
+                    apartmentBeingLeft.ExteriorEntrance;
+            }
 
             player.Heading =
                 apartmentBeingLeft
@@ -712,7 +905,7 @@ namespace SurvivalNeeds.Apartments
         //====================================================
 
         private void Sleep(
-            Ped player)
+    Ped player)
         {
             if (player == null ||
                 !player.Exists())
@@ -736,6 +929,29 @@ namespace SurvivalNeeds.Apartments
                 0
             );
 
+            Script.Wait(
+                1000
+            );
+
+            player.Health =
+                player.MaxHealth;
+
+            Function.Call(
+                Hash.RESTORE_PLAYER_STAMINA,
+                Game.Player.Handle,
+                1.0f
+            );
+
+            Function.Call(
+                Hash.DO_SCREEN_FADE_IN,
+                1000
+            );
+
+            Script.Wait(
+                1200
+            );
+
+            // The character has now fully woken up.
             hunger?.Set(
                 20f
             );
@@ -748,25 +964,14 @@ namespace SurvivalNeeds.Apartments
                 0f
             );
 
-            player.Health =
-                player.MaxHealth;
-
-            Function.Call(
-                Hash.RESTORE_PLAYER_STAMINA,
-                Game.Player.Handle,
-                1.0f
-            );
+            /*
+             * Keep the values at 20 briefly because the needs
+             * system may still process the 8-hour clock change.
+             */
+            wakeNeedsResetUntil =
+                Game.GameTime + 2000;
 
             saveGame?.Invoke();
-
-            Script.Wait(
-                700
-            );
-
-            Function.Call(
-                Hash.DO_SCREEN_FADE_IN,
-                1000
-            );
 
             Notification.Show(
                 "~g~You slept for 8 hours.~n~" +
@@ -782,6 +987,8 @@ namespace SurvivalNeeds.Apartments
         public void SaveAll()
         {
             storageManager.SaveAll();
+
+            ownershipManager.SaveAll();
         }
 
         //====================================================
@@ -812,14 +1019,15 @@ namespace SurvivalNeeds.Apartments
         //====================================================
 
         private void DrawMarker(
-            Vector3 position)
+    Vector3 position,
+    float zOffset = -1.0f)
         {
             Function.Call(
                 Hash.DRAW_MARKER,
                 1,
                 position.X,
                 position.Y,
-                position.Z - 1.0f,
+                position.Z + zOffset,
                 0f,
                 0f,
                 0f,

@@ -242,14 +242,15 @@ namespace SurvivalNeeds
                     );
 
                 apartmentManager =
-                    new ApartmentManager(
-                        inventory,
-                        hunger,
-                        thirst,
-                        stress,
-                        GetCurrentCharacterProfileId,
-                        () => SaveGame()
-                    );
+    new ApartmentManager(
+        inventory,
+        hunger,
+        thirst,
+        stress,
+        money,
+        GetCurrentCharacterProfileId,
+        () => SaveGame()
+    );
 
                 vendorsManager =
                     new VendorsManager(
@@ -497,7 +498,6 @@ namespace SurvivalNeeds
 
             vehicleFuelSystem?.Update();
 
-            UpdateSurvival();
             UpdateAutoSave();
 
             personalVehiclePhoneSystem?.Update();
@@ -528,7 +528,32 @@ namespace SurvivalNeeds
                 apartmentManager != null &&
                 apartmentManager.MenuVisible;
 
+            bool inventoryMenuOpen =
+                inventoryMenu != null &&
+                inventoryMenu.Visible;
+
+            bool trunkMenuOpen =
+                vehicleStorageMenu != null &&
+                vehicleStorageMenu.Visible;
+
             atmMenu?.Process();
+
+            bool anyMenuOpen =
+                gunStoreMenuOpen ||
+                vendorMenuOpen ||
+                atmMenuOpen ||
+                apartmentMenuOpen ||
+                inventoryMenuOpen ||
+                trunkMenuOpen;
+
+            UpdateSurvival(
+                !anyMenuOpen
+            );
+
+            if (anyMenuOpen)
+            {
+                HideGameHudThisFrame();
+            }
 
             if (gunStoreMenuOpen ||
                 vendorMenuOpen ||
@@ -586,7 +611,8 @@ namespace SurvivalNeeds
         // SURVIVAL SYSTEMS
         //====================================================
 
-        private void UpdateSurvival()
+        private void UpdateSurvival(
+            bool drawHud)
         {
             hunger.Update();
             thirst.Update();
@@ -602,13 +628,37 @@ namespace SurvivalNeeds
                 stress
             );
 
-            hud.Draw(
-                hunger.Value,
-                thirst.Value,
-                stress.Value,
-                money.Cash,
-                bankAccount.Balance
+            if (drawHud)
+            {
+                hud.Draw(
+                    hunger.Value,
+                    thirst.Value,
+                    stress.Value,
+                    money.Cash,
+                    bankAccount.Balance
+                );
+            }
+        }
+
+        //====================================================
+        // HIDE HUD WHILE MENU IS OPEN
+        //====================================================
+
+        private void HideGameHudThisFrame()
+        {
+            Function.Call(
+                Hash.HIDE_HUD_AND_RADAR_THIS_FRAME
             );
+
+            for (int componentId = 1;
+                componentId <= 22;
+                componentId++)
+            {
+                Function.Call(
+                    Hash.HIDE_HUD_COMPONENT_THIS_FRAME,
+                    componentId
+                );
+            }
         }
 
         //====================================================

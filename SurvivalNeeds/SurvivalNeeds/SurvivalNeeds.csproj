@@ -59,6 +59,7 @@
     <Compile Include="Animations\AnimationLibrary.cs" />
     <Compile Include="Apartments\Apartment.cs" />
     <Compile Include="Apartments\ApartmentManager.cs" />
+    <Compile Include="Apartments\ApartmentOwnershipManager.cs" />
     <Compile Include="Apartments\ApartmentStorageManager.cs" />
     <Compile Include="Apartments\ApartmentStorageMenu.cs" />
     <Compile Include="Assets\ItemLibrary.cs" />
