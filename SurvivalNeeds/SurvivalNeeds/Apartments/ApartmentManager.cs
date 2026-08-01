@@ -416,9 +416,62 @@ namespace SurvivalNeeds.Apartments
                     )
                 )
             );
+
+            //================================================
+            // DEL PERRO HEIGHTS RENT-TO-OWN
+            //================================================
+
+            apartments.Add(
+                new Apartment(
+                    "DEL_PERRO_HEIGHTS_RENTAL",
+
+                    "Del Perro Heights Apartment 20",
+
+                    ApartmentClass.HighEnd,
+
+                    0,
+
+                    // Exterior entrance
+                    new Vector3(
+                        -1447.5287f,
+                        -537.6658f,
+                        34.4201f
+                    ),
+
+                    180f,
+
+                    // Interior spawn
+                    new Vector3(
+                        -1451.4727f,
+                        -523.8727f,
+                        69.3267f
+                    ),
+
+                    180f,
+
+                    // Interior exit
+                    new Vector3(
+                        -1451.4727f,
+                        -523.8727f,
+                        69.3267f
+                    ),
+
+                    // Bed
+                    new Vector3(
+                        -1472.1957f,
+                        -532.3937f,
+                        63.5390f
+                    ),
+
+                    // Storage
+                    new Vector3(
+                        -1456.8052f,
+                        -531.0260f,
+                        69.0146f
+                    )
+                )
+            );
         }
-
-
 
         //====================================================
         // CREATE MAP BLIPS
@@ -463,20 +516,10 @@ namespace SurvivalNeeds.Apartments
                 blip.IsShortRange =
                     false;
 
-                blip.Scale =
-                    0.8f;
-
-                blip.IsShortRange =
-                    false;
-
                 Function.Call(
                     Hash.SET_BLIP_DISPLAY,
                     blip.Handle,
                     3
-                );
-
-                apartmentBlips.Add(
-                    blip
                 );
 
                 apartmentBlips.Add(
@@ -584,6 +627,9 @@ namespace SurvivalNeeds.Apartments
 
             ePressedLastFrame =
                 ePressed;
+
+            cPressedLastFrame =
+                cPressed;
         }
 
         //====================================================
@@ -696,11 +742,19 @@ namespace SurvivalNeeds.Apartments
         //====================================================
 
         private bool IsRentalProperty(
-            Apartment apartment)
+    Apartment apartment)
         {
-            return apartment != null &&
-                   apartment.Id ==
-                       "STRAWBERRY_RENT_HOUSE";
+            if (apartment == null)
+            {
+                return false;
+            }
+
+            return
+                apartment.Id ==
+                    "STRAWBERRY_RENT_HOUSE" ||
+
+                apartment.Id ==
+                    "DEL_PERRO_HEIGHTS_RENTAL";
         }
 
         //====================================================
@@ -708,12 +762,26 @@ namespace SurvivalNeeds.Apartments
         //====================================================
 
         private void UpdateRentalPropertyExterior(
-            Apartment apartment,
-            Ped player,
-            string profileId,
-            bool ePressed,
-            bool cPressed)
+    Apartment apartment,
+    Ped player,
+    string profileId,
+    bool ePressed,
+    bool cPressed)
         {
+            int weeklyRent =
+                weeklyRentalManager.GetWeeklyRent(
+                    apartment.Id
+                );
+
+            int requiredPayments =
+                weeklyRentalManager.GetRequiredPayments(
+                    apartment.Id
+                );
+
+            int totalCost =
+                weeklyRent *
+                requiredPayments;
+
             bool permanentlyOwned =
                 weeklyRentalManager
                     .IsPermanentlyOwned(
@@ -772,11 +840,12 @@ namespace SurvivalNeeds.Apartments
                 GTA.UI.Screen.ShowHelpTextThisFrame(
                     apartment.Name +
                     "~n~~b~Currently rented" +
+                    "~n~Weekly payment: $" +
+                    weeklyRent.ToString("N0") +
                     "~n~Progress: " +
                     completedPayments +
                     " / " +
-                    WeeklyRentalManager
-                        .PaymentsRequiredForOwnership +
+                    requiredPayments +
                     " weeks" +
                     "~n~Total paid: $" +
                     totalPaid.ToString("N0") +
@@ -812,15 +881,13 @@ namespace SurvivalNeeds.Apartments
             GTA.UI.Screen.ShowHelpTextThisFrame(
                 apartment.Name +
                 "~n~Weekly rent: ~g~$" +
-                WeeklyRentalManager
-                    .WeeklyRent
-                    .ToString("N0") +
+                weeklyRent.ToString("N0") +
                 "~s~ from bank" +
                 "~n~Rent-to-own: " +
-                WeeklyRentalManager
-                    .PaymentsRequiredForOwnership +
+                requiredPayments +
                 " weeks" +
-                "~n~Total cost: $36,000" +
+                "~n~Total cost: $" +
+                totalCost.ToString("N0") +
                 "~n~Press ~INPUT_CONTEXT~ to start renting."
             );
 
@@ -1168,7 +1235,9 @@ namespace SurvivalNeeds.Apartments
             );
 
             if (apartment.Id ==
-                "PALETO_HEIGHTS")
+        "PALETO_HEIGHTS" ||
+    apartment.Id ==
+        "DEL_PERRO_HEIGHTS_RENTAL")
             {
                 int interiorId =
                     Function.Call<int>(

@@ -16,7 +16,8 @@ namespace SurvivalNeeds.Apartments
         public const int EarlyCancellationFee =
             2000;
 
-        public const int PaymentsRequiredForOwnership = 18;
+        public const int PaymentsRequiredForOwnership =
+            18;
 
         private readonly BankAccount
             bankAccount;
@@ -30,6 +31,26 @@ namespace SurvivalNeeds.Apartments
                     StringComparer.OrdinalIgnoreCase
                 );
 
+        //====================================================
+        // RENTAL RECORD
+        //====================================================
+
+        private class RentalRecord
+        {
+            public bool Active;
+
+            public bool PermanentlyOwned;
+
+            public int CompletedPayments;
+
+            public int TotalPaid;
+
+            public DateTime DueDate;
+        }
+
+        //====================================================
+        // CONSTRUCTOR
+        //====================================================
 
         public WeeklyRentalManager(
             BankAccount bankAccount)
@@ -46,21 +67,62 @@ namespace SurvivalNeeds.Apartments
         }
 
         //====================================================
-        // RENTAL RECORD
+        // PROPERTY WEEKLY RENT
         //====================================================
 
-        private class RentalRecord
+        public int GetWeeklyRent(
+            string propertyId)
         {
-            public bool Active;
-            public bool PermanentlyOwned;
-            public int CompletedPayments;
-            public int TotalPaid;
-            public DateTime DueDate;
+            if (string.Equals(
+                propertyId,
+                "DEL_PERRO_HEIGHTS_RENTAL",
+                StringComparison.OrdinalIgnoreCase))
+            {
+                return 10000;
+            }
+
+            return WeeklyRent;
         }
 
-        public bool IsPermanentlyOwned(
-    string profileId,
+        public int GetCancellationFee(
     string propertyId)
+        {
+            if (string.Equals(
+                propertyId,
+                "DEL_PERRO_HEIGHTS_RENTAL",
+                StringComparison.OrdinalIgnoreCase))
+            {
+                return 10000;
+            }
+
+            return EarlyCancellationFee;
+        }
+
+        //====================================================
+        // PROPERTY REQUIRED PAYMENTS
+        //====================================================
+
+        public int GetRequiredPayments(
+            string propertyId)
+        {
+            if (string.Equals(
+                propertyId,
+                "DEL_PERRO_HEIGHTS_RENTAL",
+                StringComparison.OrdinalIgnoreCase))
+            {
+                return 20;
+            }
+
+            return PaymentsRequiredForOwnership;
+        }
+
+        //====================================================
+        // CHECK PERMANENT OWNERSHIP
+        //====================================================
+
+        public bool IsPermanentlyOwned(
+            string profileId,
+            string propertyId)
         {
             RentalRecord record =
                 GetRecord(
@@ -71,39 +133,13 @@ namespace SurvivalNeeds.Apartments
             return record.PermanentlyOwned;
         }
 
-        public int GetCompletedPayments(
-            string profileId,
-            string propertyId)
-        {
-            RentalRecord record =
-                GetRecord(
-                    profileId,
-                    propertyId
-                );
-
-            return record.CompletedPayments;
-        }
-
-        public int GetTotalPaid(
-            string profileId,
-            string propertyId)
-        {
-            RentalRecord record =
-                GetRecord(
-                    profileId,
-                    propertyId
-                );
-
-            return record.TotalPaid;
-        }
-
         //====================================================
-        // IS RENTED
+        // CHECK ACTIVE RENTAL
         //====================================================
 
         public bool IsRented(
-    string profileId,
-    string propertyId)
+            string profileId,
+            string propertyId)
         {
             RentalRecord record =
                 GetRecord(
@@ -121,7 +157,7 @@ namespace SurvivalNeeds.Apartments
                 return false;
             }
 
-            ProcessDuePayment(
+            ProcessDuePayments(
                 profileId,
                 propertyId,
                 record
@@ -146,10 +182,21 @@ namespace SurvivalNeeds.Apartments
                     profileId,
                     propertyId
                 );
+
+            int weeklyRent =
+                GetWeeklyRent(
+                    propertyId
+                );
+
+            int requiredPayments =
+                GetRequiredPayments(
+                    propertyId
+                );
+
             if (record.PermanentlyOwned)
             {
                 message =
-                    "You already own this house permanently.";
+                    "You already own this property permanently.";
 
                 return false;
             }
@@ -157,7 +204,7 @@ namespace SurvivalNeeds.Apartments
             if (record.Active)
             {
                 message =
-                    "You already rent this property.";
+                    "You are already renting this property.";
 
                 return false;
             }
@@ -172,18 +219,18 @@ namespace SurvivalNeeds.Apartments
             }
 
             if (!bankAccount.CanWithdraw(
-                WeeklyRent))
+                weeklyRent))
             {
                 message =
                     "You need $" +
-                    WeeklyRent.ToString("N0") +
+                    weeklyRent.ToString("N0") +
                     " in your bank account.";
 
                 return false;
             }
 
             if (!bankAccount.Withdraw(
-                WeeklyRent))
+                weeklyRent))
             {
                 message =
                     "The rental payment failed.";
@@ -201,11 +248,17 @@ namespace SurvivalNeeds.Apartments
                 1;
 
             record.TotalPaid =
-                WeeklyRent;
+                weeklyRent;
 
             record.DueDate =
                 GetCurrentGameDate()
                     .AddDays(7);
+
+            CheckForOwnership(
+                profileId,
+                propertyId,
+                record
+            );
 
             SaveRecord(
                 profileId,
@@ -214,7 +267,15 @@ namespace SurvivalNeeds.Apartments
             );
 
             message =
-                "Rental started. Next payment: " +
+                "Rental started.~n~" +
+                "Payment: $" +
+                weeklyRent.ToString("N0") +
+                " per week~n~" +
+                "Progress: " +
+                record.CompletedPayments +
+                " / " +
+                requiredPayments +
+                "~n~Next payment: " +
                 record.DueDate.ToString(
                     "MMM d, yyyy"
                 );
@@ -227,9 +288,9 @@ namespace SurvivalNeeds.Apartments
         //====================================================
 
         public bool CancelRental(
-    string profileId,
-    string propertyId,
-    out string message)
+            string profileId,
+            string propertyId,
+            out string message)
         {
             RentalRecord record =
                 GetRecord(
@@ -237,10 +298,15 @@ namespace SurvivalNeeds.Apartments
                     propertyId
                 );
 
+            int cancellationFee =
+    GetCancellationFee(
+        propertyId
+    );
+
             if (record.PermanentlyOwned)
             {
                 message =
-                    "You already own this house permanently.";
+                    "You already own this property permanently.";
 
                 return false;
             }
@@ -272,27 +338,30 @@ namespace SurvivalNeeds.Apartments
                 }
 
                 if (!bankAccount.CanWithdraw(
-                    EarlyCancellationFee))
+                    cancellationFee))
                 {
                     message =
                         "You need $" +
-                        EarlyCancellationFee.ToString("N0") +
+                        cancellationFee.ToString("N0") +
                         " in your bank account to cancel early.";
 
                     return false;
                 }
 
                 if (!bankAccount.Withdraw(
-                    EarlyCancellationFee))
+                    cancellationFee))
                 {
                     message =
-                        "The cancellation payment failed.";
+                        "The cancellation fee could not be paid.";
 
                     return false;
                 }
             }
 
             record.Active =
+                false;
+
+            record.PermanentlyOwned =
                 false;
 
             record.CompletedPayments =
@@ -310,24 +379,33 @@ namespace SurvivalNeeds.Apartments
                 record
             );
 
-            message =
-                cancellingBeforeDue
-                    ? "Rental cancelled. $" +
-                      EarlyCancellationFee.ToString("N0") +
-                      " cancellation fee paid. Progress reset."
-                    : "Rental cancelled. Progress reset.";
+            if (cancellingBeforeDue)
+            {
+                message =
+                    "Rental cancelled.~n~" +
+                    "$" +
+                    cancellationFee.ToString("N0") +
+                    " cancellation fee paid.~n~" +
+                    "Rent-to-own progress reset.";
+            }
+            else
+            {
+                message =
+                    "Rental cancelled.~n~" +
+                    "Rent-to-own progress reset.";
+            }
 
             return true;
         }
 
         //====================================================
-        // PROCESS WEEKLY PAYMENT
+        // PROCESS WEEKLY PAYMENTS
         //====================================================
 
-        private void ProcessDuePayment(
-    string profileId,
-    string propertyId,
-    RentalRecord record)
+        private void ProcessDuePayments(
+            string profileId,
+            string propertyId,
+            RentalRecord record)
         {
             if (record == null ||
                 !record.Active ||
@@ -335,6 +413,16 @@ namespace SurvivalNeeds.Apartments
             {
                 return;
             }
+
+            int weeklyRent =
+                GetWeeklyRent(
+                    propertyId
+                );
+
+            int requiredPayments =
+                GetRequiredPayments(
+                    propertyId
+                );
 
             DateTime currentDate =
                 GetCurrentGameDate();
@@ -347,15 +435,18 @@ namespace SurvivalNeeds.Apartments
                     bankAccount != null &&
                     bankAccount.HasAccount &&
                     bankAccount.CanWithdraw(
-                        WeeklyRent
+                        weeklyRent
                     ) &&
                     bankAccount.Withdraw(
-                        WeeklyRent
+                        weeklyRent
                     );
 
                 if (!paymentSuccessful)
                 {
                     record.Active =
+                        false;
+
+                    record.PermanentlyOwned =
                         false;
 
                     record.CompletedPayments =
@@ -375,7 +466,7 @@ namespace SurvivalNeeds.Apartments
 
                     GTA.UI.Notification.Show(
                         "~r~Rental payment failed.~n~" +
-                        "You lost access to the house.~n~" +
+                        "You lost access to the property.~n~" +
                         "Rent-to-own progress was reset.",
                         false
                     );
@@ -386,45 +477,18 @@ namespace SurvivalNeeds.Apartments
                 record.CompletedPayments++;
 
                 record.TotalPaid +=
-                    WeeklyRent;
+                    weeklyRent;
 
                 record.DueDate =
                     record.DueDate.AddDays(
                         7
                     );
 
-                if (record.CompletedPayments >=
-                    PaymentsRequiredForOwnership)
-                {
-                    record.CompletedPayments =
-                        PaymentsRequiredForOwnership;
-
-                    record.TotalPaid =
-                        WeeklyRent *
-                        PaymentsRequiredForOwnership;
-
-                    record.Active =
-                        false;
-
-                    record.PermanentlyOwned =
-                        true;
-
-                    SaveRecord(
-                        profileId,
-                        propertyId,
-                        record
-                    );
-
-                    GTA.UI.Notification.Show(
-                        "~g~House fully paid!~n~" +
-                        "You now permanently own this property.~n~" +
-                        "Total paid: $" +
-                        record.TotalPaid.ToString("N0"),
-                        false
-                    );
-
-                    return;
-                }
+                CheckForOwnership(
+                    profileId,
+                    propertyId,
+                    record
+                );
 
                 SaveRecord(
                     profileId,
@@ -432,18 +496,116 @@ namespace SurvivalNeeds.Apartments
                     record
                 );
 
+                if (record.PermanentlyOwned)
+                {
+                    return;
+                }
+
                 GTA.UI.Notification.Show(
                     "~b~Weekly rent paid.~n~" +
                     "$" +
-                    WeeklyRent.ToString("N0") +
+                    weeklyRent.ToString("N0") +
                     " withdrawn from your bank.~n~" +
                     "Progress: " +
                     record.CompletedPayments +
                     " / " +
-                    PaymentsRequiredForOwnership,
+                    requiredPayments,
                     false
                 );
             }
+        }
+
+        //====================================================
+        // CHECK FOR OWNERSHIP
+        //====================================================
+
+        private void CheckForOwnership(
+            string profileId,
+            string propertyId,
+            RentalRecord record)
+        {
+            if (record == null ||
+                record.PermanentlyOwned)
+            {
+                return;
+            }
+
+            int weeklyRent =
+                GetWeeklyRent(
+                    propertyId
+                );
+
+            int requiredPayments =
+                GetRequiredPayments(
+                    propertyId
+                );
+
+            if (record.CompletedPayments <
+                requiredPayments)
+            {
+                return;
+            }
+
+            record.CompletedPayments =
+                requiredPayments;
+
+            record.TotalPaid =
+                weeklyRent *
+                requiredPayments;
+
+            record.Active =
+                false;
+
+            record.PermanentlyOwned =
+                true;
+
+            SaveRecord(
+                profileId,
+                propertyId,
+                record
+            );
+
+            GTA.UI.Notification.Show(
+                "~g~Property fully paid!~n~" +
+                "You now permanently own this property.~n~" +
+                "Total paid: $" +
+                record.TotalPaid.ToString("N0"),
+                false
+            );
+        }
+
+        //====================================================
+        // GET COMPLETED PAYMENTS
+        //====================================================
+
+        public int GetCompletedPayments(
+            string profileId,
+            string propertyId)
+        {
+            RentalRecord record =
+                GetRecord(
+                    profileId,
+                    propertyId
+                );
+
+            return record.CompletedPayments;
+        }
+
+        //====================================================
+        // GET TOTAL PAID
+        //====================================================
+
+        public int GetTotalPaid(
+            string profileId,
+            string propertyId)
+        {
+            RentalRecord record =
+                GetRecord(
+                    profileId,
+                    propertyId
+                );
+
+            return record.TotalPaid;
         }
 
         //====================================================
@@ -464,7 +626,7 @@ namespace SurvivalNeeds.Apartments
         }
 
         //====================================================
-        // GET RECORD
+        // GET RENTAL RECORD
         //====================================================
 
         private RentalRecord GetRecord(
@@ -510,12 +672,12 @@ namespace SurvivalNeeds.Apartments
         }
 
         //====================================================
-        // LOAD RECORD
+        // LOAD RENTAL RECORD
         //====================================================
 
         private RentalRecord LoadRecord(
-    string profileId,
-    string propertyId)
+            string profileId,
+            string propertyId)
         {
             RentalRecord record =
                 new RentalRecord
@@ -573,48 +735,53 @@ namespace SurvivalNeeds.Apartments
                     "Active",
                     StringComparison.OrdinalIgnoreCase))
                 {
-                    bool active;
+                    bool parsedValue;
 
                     if (bool.TryParse(
                         value,
-                        out active))
+                        out parsedValue))
                     {
                         record.Active =
-                            active;
+                            parsedValue;
                     }
                 }
                 else if (key.Equals(
                     "PermanentlyOwned",
                     StringComparison.OrdinalIgnoreCase))
                 {
-                    bool permanentlyOwned;
+                    bool parsedValue;
 
                     if (bool.TryParse(
                         value,
-                        out permanentlyOwned))
+                        out parsedValue))
                     {
                         record.PermanentlyOwned =
-                            permanentlyOwned;
+                            parsedValue;
                     }
                 }
                 else if (key.Equals(
                     "CompletedPayments",
                     StringComparison.OrdinalIgnoreCase))
                 {
-                    int completedPayments;
+                    int parsedValue;
 
                     if (int.TryParse(
                         value,
                         NumberStyles.Integer,
                         CultureInfo.InvariantCulture,
-                        out completedPayments))
+                        out parsedValue))
                     {
+                        int requiredPayments =
+                            GetRequiredPayments(
+                                propertyId
+                            );
+
                         record.CompletedPayments =
                             Math.Max(
                                 0,
                                 Math.Min(
-                                    PaymentsRequiredForOwnership,
-                                    completedPayments
+                                    requiredPayments,
+                                    parsedValue
                                 )
                             );
                     }
@@ -623,18 +790,18 @@ namespace SurvivalNeeds.Apartments
                     "TotalPaid",
                     StringComparison.OrdinalIgnoreCase))
                 {
-                    int totalPaid;
+                    int parsedValue;
 
                     if (int.TryParse(
                         value,
                         NumberStyles.Integer,
                         CultureInfo.InvariantCulture,
-                        out totalPaid))
+                        out parsedValue))
                     {
                         record.TotalPaid =
                             Math.Max(
                                 0,
-                                totalPaid
+                                parsedValue
                             );
                     }
                 }
@@ -668,22 +835,32 @@ namespace SurvivalNeeds.Apartments
 
             if (record.PermanentlyOwned)
             {
+                int weeklyRent =
+                    GetWeeklyRent(
+                        propertyId
+                    );
+
+                int requiredPayments =
+                    GetRequiredPayments(
+                        propertyId
+                    );
+
                 record.Active =
                     false;
 
                 record.CompletedPayments =
-                    PaymentsRequiredForOwnership;
+                    requiredPayments;
 
                 record.TotalPaid =
-                    WeeklyRent *
-                    PaymentsRequiredForOwnership;
+                    weeklyRent *
+                    requiredPayments;
             }
 
             return record;
         }
 
         //====================================================
-        // SAVE RECORD
+        // SAVE RENTAL RECORD
         //====================================================
 
         private void SaveRecord(
@@ -698,28 +875,28 @@ namespace SurvivalNeeds.Apartments
                 );
 
             string[] lines =
-{
-    "Active=" +
-    record.Active,
+            {
+                "Active=" +
+                record.Active,
 
-    "PermanentlyOwned=" +
-    record.PermanentlyOwned,
+                "PermanentlyOwned=" +
+                record.PermanentlyOwned,
 
-    "CompletedPayments=" +
-    record.CompletedPayments.ToString(
-        CultureInfo.InvariantCulture
-    ),
+                "CompletedPayments=" +
+                record.CompletedPayments.ToString(
+                    CultureInfo.InvariantCulture
+                ),
 
-    "TotalPaid=" +
-    record.TotalPaid.ToString(
-        CultureInfo.InvariantCulture
-    ),
+                "TotalPaid=" +
+                record.TotalPaid.ToString(
+                    CultureInfo.InvariantCulture
+                ),
 
-    "DueDateTicks=" +
-    record.DueDate.Ticks.ToString(
-        CultureInfo.InvariantCulture
-    )
-};
+                "DueDateTicks=" +
+                record.DueDate.Ticks.ToString(
+                    CultureInfo.InvariantCulture
+                )
+            };
 
             File.WriteAllLines(
                 savePath,
@@ -779,13 +956,17 @@ namespace SurvivalNeeds.Apartments
 
             if (year < 1)
             {
-                year = 2013;
+                year =
+                    2013;
             }
 
             month =
                 Math.Max(
                     1,
-                    Math.Min(12, month)
+                    Math.Min(
+                        12,
+                        month
+                    )
                 );
 
             day =
@@ -808,7 +989,7 @@ namespace SurvivalNeeds.Apartments
         }
 
         //====================================================
-        // PATHS
+        // SAVE PATH
         //====================================================
 
         private string GetSavePath(
@@ -831,16 +1012,23 @@ namespace SurvivalNeeds.Apartments
             );
         }
 
+        //====================================================
+        // SAVE FOLDER
+        //====================================================
+
         private string GetRentalSaveFolder()
         {
             return Path.Combine(
                 AppDomain.CurrentDomain.BaseDirectory,
-                "scripts",
                 "SurvivalNeeds",
                 "apartments",
                 "rentals"
             );
         }
+
+        //====================================================
+        // NORMALIZE ID
+        //====================================================
 
         private string NormalizeId(
             string value,
